@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Feb  4 10:23:41 2000
-# Update Count    : 44
+# Last Modified On: Mon Dec 23 21:27:48 2002
+# Update Count    : 50
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,30 +19,33 @@ use IO;
 use vars qw($VERSION);
 $VERSION = "1.03";
 
-my $trace;
-my $verbose;
-my $error;
-
 sub new {
     my $class = shift;
     my $font = shift;
     my (%atts) = (error => 'die',
-		  verbose => 0, trace => 0,
+		  verbose => 0, trace => 0, debug => 0,
 		  @_);
     my $self = { file => $font };
     bless $self, $class;
 
-    $trace = lc($atts{trace});
-    $verbose = $trace || lc($atts{verbose});
-    $error = lc($atts{error});
+    return $self unless defined $font;
+
+    $self->{debug}   = $atts{debug};
+    $self->{trace}   = $self->{debug} || $atts{trace};
+    $self->{verbose} = $self->{trace} || $atts{verbose};
+
+    my $error = lc($atts{error});
+    $self->{die} = sub {
+	die(@_)     if $error eq "die";
+	warn(@_)    if $error eq "warn";
+    };
 
     eval {
 	$self->_loadinfo;
     };
 
     if ( $@ ) {
-	die ($@)  unless $error eq "warn";
-	warn ($@) unless $error eq "ignore";
+	$self->_die($@);
 	return undef;
     }
 
@@ -68,8 +71,8 @@ sub _loadinfo ($) {
 	my $fh = new IO::File;	# font file
 	my $sz = -s $fn;	# file size
 
-	$fh->open ($fn) || die ("$fn: $!\n");
-	print STDERR ("$fn: Loading INF file\n") if $verbose;
+	$fh->open ($fn) || $self->_die("$fn: $!\n");
+	print STDERR ("$fn: Loading INF file\n") if $self->{verbose};
 
 	# Read in the inf data.
 	my $len = 0;
@@ -77,14 +80,14 @@ sub _loadinfo ($) {
 	    $len = length ($data);
 	}
 	$fh->close;
-	print STDERR ("Read $len bytes from $fn\n") if $trace;
-	die ("$fn: Expecting $sz bytes, got $len bytes\n") unless $sz == $len;
+	print STDERR ("Read $len bytes from $fn\n") if $self->{trace};
+	$self->_die("$fn: Expecting $sz bytes, got $len bytes\n") unless $sz == $len;
 
 	# Normalise line endings.
 	$data =~ s/\015\012?/\n/g;
 
 	if ( $data !~ /^FontName\s+\(\S+\)$/m ) {
-	    die ("$fn: Not a recognizable INF file\n");
+	    $self->_die("$fn: Not a recognizable INF file\n");
 	}
 
     };
@@ -97,6 +100,11 @@ sub _loadinfo ($) {
     $self->{data}    = $data;
 
     $self;
+}
+
+sub _die {
+    my ($self, @msg) = @_;
+    $self->{die}->(@msg);
 }
 
 1;
@@ -135,8 +143,11 @@ The constructor will read the file and parse its contents.
 
 =item error => [ 'die' | 'warn' | 'ignore' ]
 
+B<DEPRECATED>. Please use 'eval { ... }' to intercept errors.
+
 How errors must be handled. Default is to call die().
 In any case, new() returns a undefined result.
+Setting 'error' to 'ignore' may cause surprising results.
 
 =item verbose => I<value>
 
@@ -192,7 +203,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000,1998 by Squirrel Consultancy. All
+This program is Copyright 2003,1998 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify
