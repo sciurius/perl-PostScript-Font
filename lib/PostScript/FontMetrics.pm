@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed May 19 19:15:05 1999
-# Update Count    : 356
+# Last Modified On: Fri Sep 24 14:54:25 1999
+# Update Count    : 400
 # Status          : Released
 
 ################ Module Preamble ################
@@ -16,12 +16,17 @@ use Carp;
 BEGIN { require 5.005; }
 
 use IO;
+use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.0";
+$VERSION = "1.00_01";
+
+# The ttftot42 program is used to extract metrics from True Type fonts.
+use vars qw($ttftot42);
 
 my $trace;
 my $verbose;
+my $debug;
 my $error;
 
 sub new {
@@ -33,9 +38,13 @@ sub new {
     my $self = { file => $font };
     bless $self, $class;
 
-    $trace = lc($atts{trace});
+    $debug = lc($atts{debug});
+    $trace = $debug || lc($atts{trace});
     $verbose = $trace || lc($atts{verbose});
     $error = lc($atts{error});
+
+    $ttftot42 = _getexec ("ttftot42")
+      unless defined $ttftot42;
 
     eval { $self->_loadafm };
     if ( $@ ) {
@@ -48,6 +57,8 @@ sub new {
 }
 
 sub FileName	{ my $self = shift; $self->{file};    }
+
+sub MetricsData { my $self = shift; $self->{data};    }
 
 sub CharWidthData {
     my $self = shift;
@@ -88,17 +99,45 @@ sub _loadafm ($) {
 
     # Read in the afm data.
     my $len = 0;
+
+    unless ( ($len = $fh->sysread ($data, 4, 0)) == 4 ) {
+	die ("$fn: Expecting $sz bytes, got $len bytes\n");
+    }
+
+    $self->{origdataformat} = 'afm';
+    if ( $data eq "\0\1\0\0" ) {
+	#### WARNING: This is Unix specific! ####
+	my $cmd = $ttftot42 || $PostScript::Font::ttftot42;
+	my $f = _qtfn($fn);
+	if ( $cmd ) {
+	    $cmd .= " -ac $f 2>>/dev/null |";
+	    print STDERR ("$fn: Extracting metrics from True Type font\n")
+	      if $verbose;
+	}
+	else {
+	    die ("$fn: Cannot extract metrics from True Type font\n");
+	}
+
+	$fh->close;
+	print STDERR ("+ $cmd\n") if $trace;
+	$fh->open ($cmd) || die ("$cmd: $!\n");;
+	$sz = -1;
+	$len = 0;
+	$self->{origdataformat} = 'ttf';
+    }
+
     while ( $fh->sysread ($data, 32768, $len) > 0 ) {
 	$len = length ($data);
     }
     $fh->close;
     print STDERR ("Read $len bytes from $fn\n") if $trace;
-    die ("$fn: Expecting $sz bytes, got $len bytes\n") unless $sz == $len;
+    die ("$fn: Expecting $sz bytes, got $len bytes\n")
+      unless $sz == -1 || $sz == $len;
 
-    # Normalise line endings.
-    $data =~ s/\015\012?/\n/g;
+    # Normalise line endings. Get rid of trailing space as well.
+    $data =~ s/\s*\015\012?/\n/g;
 
-    if ( $data !~ /StartFontMetrics/ || $data !~ /EndFontMetrics$/ ) {
+    if ( $data !~ /StartFontMetrics/ || $data !~ /EndFontMetrics/ ) {
 	die ("$fn: Not a recognizable AFM file\n");
     }
     $self->{data} = $data;
@@ -221,9 +260,7 @@ sub setEncoding {
 }
 
 sub stringwidth {
-    my $self = shift;
-    my $string = shift;
-    my $pt = shift || 1;
+    my ($self, $string, $pt) = @_;
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
@@ -234,13 +271,17 @@ sub stringwidth {
     foreach ( unpack ("C*", $string) ) {
 	$wd += $wx->{$ev->[$_]||'.undef'};
     }
-    $wd * $pt / 1000;
+
+    if ( defined $pt ) {
+	carp ("Using a PointSize argument to stringwidth is deprecated")
+	  if $^W;
+	$wd *= $pt / 1000;
+    }
+    $wd;
 }
 
 sub kstringwidth {
-    my $self = shift;
-    my $string = shift;
-    my $pt = shift || 1;
+    my ($self, $string, $pt) = @_;
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
@@ -259,7 +300,12 @@ sub kstringwidth {
 	}
 	$prev = $this;
     }
-    $wd * $pt / 1000;
+    if ( defined $pt ) {
+	carp ("Using a PointSize argument to kstringwidth is deprecated")
+	  if $^W;
+	$wd *= $pt / 1000;
+    }
+    $wd;
 }
 
 sub kstring {
@@ -304,14 +350,18 @@ sub kstring {
 	# Get the glypha name and kern value.
 	my $this = $ev->[ord($_)] || '.undef';
 	my $kw = $kr->{$prev,$this} || 0;
-	print STDERR ("$prev $this $kw\n");
+	{ local ($^W) = 0;
+	  print STDERR ("$prev $this $kw :$res[-3]:$res[-2]:$res[-1]:\n")
+	    if $debug;
+        }
 	# Nothing to kern?
-	if ( $kw == 0 ) {
-	    if ( defined $ext && $prev eq 'space' ) {
-		# Accumulate displacement.
-		push (@res, $_);
-	    }
-	    elsif ( $prev eq '.undef' ) {
+	if ( defined $ext && $prev eq 'space' ) {
+	    # Accumulate displacement.
+	    $res[$#res] += $kw;
+	    push (@res, $_);
+	}
+	elsif ( $kw == 0 ) {
+	    if ( $prev eq '.undef' ) {
 		# New item.
 		push (@res, $_);
 	    }
@@ -338,6 +388,27 @@ sub kstring {
 
     # Return.
     wantarray ? @res : \@res;
+}
+
+sub _qtfn ($) {
+    my $f = shift;
+    $f =~ s/([\\'])/'\\$1'/g;
+    "'".$f."'";
+}
+
+sub _getexec ($) {
+    my ($exec) = @_;
+    foreach ( File::Spec->path ) {
+	if ( -x "$_/$exec" ) {
+	    print STDERR ("Using $_/$exec\n") if $verbose;
+	    return "$_/$exec";
+	}
+	elsif ( -x "$_/$exec.exe" ) {
+	    print STDERR ("Using $_/$exec.exe\n") if $verbose;
+	    return "$_/$exec.exe";
+	}
+    }
+    '';
 }
 
 sub AUTOLOAD {
@@ -395,6 +466,14 @@ Prints tracing info if I<value> is true.
 This package allows Adobe standard font metric files, so called
 C<.afm> files, to be read and (partly) parsed.
 
+True Type fonts are understood as well, their metrics are extracted.
+Currently this requires an external program, I<ttftot42. This program
+will be used automatically if it can be located in the execution
+C<PATH>. Alternatively, you can set the variable
+C<$PostScript::FontMetrics::ttftot42> (or
+C<$PostScript::Font::ttftot42>) to the name of the actual program. See
+also section L<EXTERNAL PROGRAMS>.
+
 =head1 CONSTRUCTOR
 
 =over 4
@@ -446,16 +525,24 @@ e.g. $kd->{"A","B"}).
 
 =item stringwidth ( string [ , pointsize ] )
 
-Returns the width of the string scaled to pointsize.
-Default pointsize is 1.
+Returns the width of the string, in character space units.
+
+Deprecated: When a pointsize argument is supplied, the resultant width
+is scaled to user space units. This assumes that the font maps 1000
+character space units to one user space unit (which is generally the
+case).
 
 =item kstringwidth ( string [ , pointsize ] )
 
-Returns the width of the string scaled to pointsize, taking kerning
-into account.
-Default pointsize is 1.
+Returns the width of the string in character space units, taking kerning
+information into account.
 
-=item kstring ( string )
+Deprecated: When a pointsize argument is supplied, the resultant width
+is scaled to user space units. This assumes that the font maps 1000
+character space units to one user space unit (which is generally the
+case).
+
+=item kstring ( string [ , extent ] )
 
 Returns an array reference (in scalar context) or an array (in array
 context) with substrings of the given string, interspersed with
@@ -463,6 +550,9 @@ kerning info. The kerning info is the amount of movement needed for
 the correct kerning, in character space (which is usually 1000 times a
 PostScript point). The substrings are ready for printing: non-ASCII
 characters have been encoded and parentheses are put around them.
+
+If the extend argument is supplied, this amount of displacement is
+added to each space in the string.
 
 For example, for a given font, the following call:
 
@@ -476,11 +566,13 @@ There are several straightforward ways to process this.
 
 By translating to a series of 'show' and 'rmoveto' operations:
 
-    while ( @$typesetinfo ) {
-	print PS (shift @$typesetinfo, " show\n");
-	last unless @$typesetinfo;
-	printf PS ("%.3f 0 rmoveto\n",
-		   ((shift @$typesetinfo)*$fontsize)/1000);
+    foreach ( ... ) {
+	if ( /^\(/ ) {
+	    print STDOUT ($_, " show\n");
+	}
+	else {
+	    printf STDOUT ("%.3f 0 rmoveto\n", ($_*$fontsize)/$fontscale);
+	}
     }
 
 Or, assuming the following definition in the PostScript preamble (48
@@ -495,6 +587,28 @@ is the font size):
 the following Perl code would suffice:
 
     print PS ("[ @$typesetinfo ] TJ\n");
+
+=back
+
+=head1 EXTERNAL PROGRAMS
+
+I<ttftot42> is required when True Type fonts must be handled. It is
+called as follows:
+
+    ttftot42 -ac filename
+
+This invocation will write the metrics for the True Type font to
+standard output.
+
+I<ttftot42> can be found on http://ftp.giga.or.at/pub/nih/ttftot42
+
+=head1 SEE ALSO
+
+=over 4
+
+=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/5004.AFM_Spec.pdf
+
+The specification of the Adobe font metrics file format.
 
 =back
 
