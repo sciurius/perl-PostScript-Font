@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : January 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Mar  7 15:47:21 1999
-# Update Count    : 30
+# Last Modified On: Fri Sep 24 15:11:27 1999
+# Update Count    : 32
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -118,6 +118,11 @@ standard output.
 The output will be ASCII encoded (.pfa format), unless the B<-binary>
 or B<-pfb> option is used, or the program is installed under a name
 that ends in C<pfb>.
+
+B<font2pfa> depends on the capabilities of the C<PostScript::Font>
+module. If your version supports True Type fonts, B<font2pfa> will
+happily produce ASCII or binary encoded Type42 versions of True Type
+fonts.
 
 =head1 OPTIONS
 
