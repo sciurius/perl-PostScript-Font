@@ -1,9 +1,8 @@
 This package contains a couple of modules to get information for and
 from PostScript fonts and associated metrics files. Also included is a
 program to make font samples, and programs to handle the conversion of
-PostScript fonts from binary (.pfb) format to ASCII (.pfa) format, and
-vice versa. An example program shows how basic typesetting can be
-obtained.
+font data to PostScript binary (.pfb) and ASCII (.pfa) formats. An
+example program shows how basic typesetting can be obtained.
 
 Modules:
 
