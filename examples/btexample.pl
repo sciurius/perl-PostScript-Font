@@ -6,8 +6,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Jun 20 19:23:58 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 15:03:49 2000
-# Update Count    : 9
+# Last Modified On: Wed Jun 21 16:27:16 2000
+# Update Count    : 10
 # Status          : Unknown, Use with caution!
 
 use strict;
@@ -138,8 +138,8 @@ $page++;
 # Wrap up PostScript.
 print STDOUT ("%%Trailer\n",
 	      "%%Pages: ", $page-1, "\n",
-	      "%%DocumentResources: font ", $tr->FontMetrics->FontName, " ",
-	      $tb->FontMetrics->FontName, "\n",
+	      "%%DocumentResources: font ", $tr->fontmetrics->FontName, " ",
+	      $tb->fontmetrics->FontName, "\n",
 	      "%%EOF\n");
 
 
