@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Dec 24 17:06:46 2002
-# Update Count    : 464
+# Last Modified On: Wed Oct 22 14:43:30 2003
+# Update Count    : 465
 # Status          : Released
 
 ################ Module Preamble ################
@@ -15,7 +15,7 @@ use Carp;
 
 BEGIN { require 5.005; }
 
-use IO;
+use IO qw(File);
 use File::Spec;
 
 use vars qw($VERSION);

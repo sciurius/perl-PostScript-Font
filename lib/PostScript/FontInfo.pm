@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Dec 24 18:51:13 2002
-# Update Count    : 55
+# Last Modified On: Wed Oct 22 14:43:18 2003
+# Update Count    : 56
 # Status          : Released
 
 ################ Module Preamble ################
@@ -14,7 +14,7 @@ use strict;
 
 BEGIN { require 5.005; }
 
-use IO;
+use IO qw(File);
 
 use vars qw($VERSION);
 $VERSION = "1.04";

@@ -1,8 +1,8 @@
 # RCS Status      : $Id$# Author          : Johan Vromans
 # Created On      : Januari 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Apr 14 12:44:57 2001
-# Update Count    : 185
+# Last Modified On: Wed Oct 22 14:43:56 2003
+# Update Count    : 186
 # Status          : Released
 
 ################ Module Preamble ################
@@ -13,7 +13,7 @@ use strict;
 
 BEGIN { require 5.005; }
 
-use IO;
+use IO qw(File);
 use File::Basename;
 use File::Spec;
 

@@ -2,8 +2,8 @@
 # Author          : Andrew Ford
 # Created On      : March 2001
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Dec 24 18:56:42 2002
-# Update Count    : 43
+# Last Modified On: Wed Oct 22 14:43:47 2003
+# Update Count    : 44
 # Status          : Development
 
 ################ Module Preamble ################
@@ -16,7 +16,7 @@ use Data::Dumper;
 
 BEGIN { require 5.005; }
 
-use IO;
+use IO qw(File);
 use File::Spec;
 
 use vars qw($VERSION @ISA $AUTOLOAD);
