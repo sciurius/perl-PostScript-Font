@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu May 13 11:46:35 1999
-# Update Count    : 37
+# Last Modified On: Fri Sep 24 14:54:40 1999
+# Update Count    : 38
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -17,7 +17,7 @@ BEGIN { require 5.005; }
 use IO;
 
 use vars qw($VERSION);
-$VERSION = "1.0";
+$VERSION = "1.00_01";
 
 my $trace;
 my $verbose;
