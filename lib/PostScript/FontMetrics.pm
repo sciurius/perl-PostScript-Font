@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 15:24:26 2000
-# Update Count    : 415
+# Last Modified On: Fri Jun 23 08:29:12 2000
+# Update Count    : 417
 # Status          : Released
 
 ################ Module Preamble ################
@@ -23,6 +23,8 @@ $VERSION = "1.02";
 
 # The ttftot42 program is used to extract metrics from True Type fonts.
 use vars qw($ttftot42);
+
+use constant FONTSCALE => 1000;		# normal value for font design
 
 my $trace;
 my $verbose;
@@ -276,7 +278,7 @@ sub stringwidth {
     if ( defined $pt ) {
 	carp ("Using a PointSize argument to stringwidth is deprecated")
 	  if $^W;
-	$wd *= $pt / 1000;
+	$wd *= $pt / FONTSCALE;
     }
     $wd;
 }
@@ -304,7 +306,7 @@ sub kstringwidth {
     if ( defined $pt ) {
 	carp ("Using a PointSize argument to kstringwidth is deprecated")
 	  if $^W;
-	$wd *= $pt / 1000;
+	$wd *= $pt / FONTSCALE;
     }
     $wd;
 }
@@ -348,7 +350,7 @@ sub kstring {
 	    next;
 	}
 
-	# Get the glypha name and kern value.
+	# Get the glyph name and kern value.
 	my $this = $ev->[ord($_)] || '.undef';
 	my $kw = $kr->{$prev,$this} || 0;
 	{ local ($^W) = 0;

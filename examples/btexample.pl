@@ -6,8 +6,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Jun 20 19:23:58 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 16:27:16 2000
-# Update Count    : 10
+# Last Modified On: Fri Jun 23 09:03:33 2000
+# Update Count    : 30
 # Status          : Unknown, Use with caution!
 
 use strict;
@@ -89,8 +89,8 @@ print STDOUT ($tr->ps_textbox ($x0, 0, $y, $width,
 
 $y = $y0 + $height - 80;
 
-$tr->fontsize(10, 14);
-$tb->fontsize(10, 14);
+$tr->fontsize(10, 12);
+$tb->fontsize(10, 12);
 my $t =  "This paragraph is typeset flush left with an initial indent. ".$text;
 print STDOUT ($tr->ps_textbox ($x0, mm(5), \$y, $width, $t));
 
@@ -138,8 +138,8 @@ $page++;
 # Wrap up PostScript.
 print STDOUT ("%%Trailer\n",
 	      "%%Pages: ", $page-1, "\n",
-	      "%%DocumentResources: font ", $tr->fontmetrics->FontName, " ",
-	      $tb->fontmetrics->FontName, "\n",
+	      "%%DocumentResources: font ", $tr->real_fontname, " ",
+	      $tb->real_fontname, "\n",
 	      "%%EOF\n");
 
 
