@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat May 15 15:34:40 1999
-# Update Count    : 329
+# Last Modified On: Wed May 19 19:15:05 1999
+# Update Count    : 356
 # Status          : Released
 
 ################ Module Preamble ################
@@ -139,7 +139,7 @@ sub _getwidthdata {
 	if ( defined $self->{encodingscheme} ) {
 	    if ( $self->{encodingscheme} eq "AdobeStandardEncoding" ) {
 		$self->{encodingvector} =
-		  [ @{PostScript::Font::StandardEncoding} ];
+		  [ @{PostScript::Font::StandardEncoding()} ];
 	    }
 	    else {
 		$self->{encodingvector} = [];
@@ -213,7 +213,7 @@ sub _getkerndata {
 
 sub setEncoding {
     my ($self, $enc) = @_;
-    unless ( ref($enc) && ref($enc) eq 'ARRAY' && length(@$enc) == 256 ) {
+    unless ( ref($enc) && ref($enc) eq 'ARRAY' && scalar(@$enc) == 256 ) {
 	croak ("Invalid encoding vector");
     }
     $self->{encodingvector} = $enc;
@@ -245,7 +245,7 @@ sub kstringwidth {
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
     if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
-	die ($self->FileName . ": Missing Encoding\n");
+	croak ($self->FileName . ": Missing Encoding\n");
     }
     my $kr = $self->KernData;
     my $wd = 0;
@@ -263,39 +263,80 @@ sub kstringwidth {
 }
 
 sub kstring {
-    my $self = shift;
-    my $string = shift;
+    my ($self, $string, $ext) = @_;
     return (wantarray ? () : []) unless length ($string);
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
     if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
-	die ($self->FileName . ": Missing Encoding\n");
+	croak ($self->FileName . ": Missing Encoding\n");
     }
     my $kr = $self->KernData;
-    my $wd = 0;
+    my $wd = (defined $ext ? $wx->{'space'}+$ext : 0);
     my @res = ();
-    my $prev;
+    my $prev = '.undef';
+
     foreach ( split ('', $string) ) {
-	unless ( defined $prev ) {
-	    $prev = $ev->[ord($_)];
-	    @res = $_;
+
+	# Check for flex space.
+	if ( defined $ext && $_ eq " " ) {
+	    # If we have something, accumulate.
+	    if ( @res ) {
+		# Add to displacement.
+		if ( $prev eq 'space' ) {
+		    $res[$#res] += $wd;
+		}
+		# Turn last item into string, and push the displacement.
+		else {
+		    $res[$#res] =~ s/([()\\]|[^\040-\176])/sprintf("\\%o",ord($1))/eg;
+		    $res[$#res] = "(".$res[$#res].")";
+		    push (@res, $wd);
+		}
+	    }
+	    else {
+		# First item, push.
+		push (@res, $wd);
+	    }
+	    $prev = 'space';
 	    next;
 	}
+
+	# Get the glypha name and kern value.
 	my $this = $ev->[ord($_)] || '.undef';
-	my $kw = $kr->{$prev,$this};
-	if ( !defined $kw || $kw == 0 ) {
-	    $res[$#res] .= $_;
+	my $kw = $kr->{$prev,$this} || 0;
+	print STDERR ("$prev $this $kw\n");
+	# Nothing to kern?
+	if ( $kw == 0 ) {
+	    if ( defined $ext && $prev eq 'space' ) {
+		# Accumulate displacement.
+		push (@res, $_);
+	    }
+	    elsif ( $prev eq '.undef' ) {
+		# New item.
+		push (@res, $_);
+	    }
+	    else {
+		# Accumulate text.
+		$res[$#res] .= $_;
+	    }
 	}
 	else {
+	    # Turn previous into string.
 	    $res[$#res] =~ s/([()\\]|[^\040-\176])/sprintf("\\%o",ord($1))/eg;
 	    $res[$#res] = "(".$res[$#res].")";
+	    # Add kerning value and the new item.
 	    push (@res, $kw, $_);
 	}
 	$prev = $this;
     }
-    $res[$#res] =~ s/([()\\]|[^\040-\176])/sprintf("\\%o",ord($1))/eg;
-    $res[$#res] = "(".$res[$#res].")";
+
+    # Turn the last item into string, if needed.
+    if ( !(defined $ext && $prev eq 'space') ) {
+	$res[$#res] =~ s/([()\\]|[^\040-\176])/sprintf("\\%o",ord($1))/eg;
+	$res[$#res] = "(".$res[$#res].")";
+    }
+
+    # Return.
     wantarray ? @res : \@res;
 }
 
