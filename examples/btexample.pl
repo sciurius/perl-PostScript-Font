@@ -6,8 +6,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Jun 20 19:23:58 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Jun 20 19:24:22 2000
-# Update Count    : 5
+# Last Modified On: Wed Jun 21 15:03:49 2000
+# Update Count    : 9
 # Status          : Unknown, Use with caution!
 
 use strict;
@@ -110,6 +110,23 @@ $t = "This paragraph is typeset flush right. ".$text;
 print STDOUT ($tr->ps_textbox ($x0, 0, \$y, $width, $t, "r"));
 
 $y -= 2*$tr->lineskip;
+{ my $tr = $tr->clone(12, 22);
+  my $tb = $tr->clone(20, 22);
+  print STDOUT
+    ($tr->ps_textbox
+     ($x0, 0, \$y, mm(180),
+      [
+       "The quick brown fox jumps over the lazy dog.",
+       $tb, " The quick brown fox jumps over the lazy dog. ",
+       $tr, "The quick brown fox jumps over the lazy dog. ",
+       [$tb, "The quick brown fox jumps over the lazy dog. "],
+       "The quick brown fox jumps over the lazy dog.",
+      ],
+      "j"));
+}
+
+$y -= 4*$tr->lineskip;
+$tr->fontsize(24);
 print STDOUT ($tr->ps_textbox ($x0, 0, \$y, $width,
 			       "Happy hacking!", "c"));
 
