@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Mar  7 15:51:14 1999
-# Update Count    : 312
+# Last Modified On: Sat May 15 15:34:40 1999
+# Update Count    : 329
 # Status          : Released
 
 ################ Module Preamble ################
@@ -11,6 +11,7 @@
 package PostScript::FontMetrics;
 
 use strict;
+use Carp;
 
 BEGIN { require 5.005; }
 
@@ -21,6 +22,7 @@ $VERSION = "1.0";
 
 my $trace;
 my $verbose;
+my $error;
 
 sub new {
     my $class = shift;
@@ -33,14 +35,12 @@ sub new {
 
     $trace = lc($atts{trace});
     $verbose = $trace || lc($atts{verbose});
+    $error = lc($atts{error});
 
-    eval {
-	$self->_loadafm;
-    };
-
+    eval { $self->_loadafm };
     if ( $@ ) {
-	die ($@) unless lc($atts{error}) eq "warn";
-	warn ($@);
+	die ($@)  unless $error eq "warn";
+	warn ($@) unless $error eq "ignore";
 	return undef;
     }
 
@@ -211,6 +211,15 @@ sub _getkerndata {
     $self;
 }
 
+sub setEncoding {
+    my ($self, $enc) = @_;
+    unless ( ref($enc) && ref($enc) eq 'ARRAY' && length(@$enc) == 256 ) {
+	croak ("Invalid encoding vector");
+    }
+    $self->{encodingvector} = $enc;
+    $self;
+}
+
 sub stringwidth {
     my $self = shift;
     my $string = shift;
@@ -253,6 +262,43 @@ sub kstringwidth {
     $wd * $pt / 1000;
 }
 
+sub kstring {
+    my $self = shift;
+    my $string = shift;
+    return (wantarray ? () : []) unless length ($string);
+
+    my $wx = $self->CharWidthData;
+    my $ev = $self->EncodingVector;
+    if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
+	die ($self->FileName . ": Missing Encoding\n");
+    }
+    my $kr = $self->KernData;
+    my $wd = 0;
+    my @res = ();
+    my $prev;
+    foreach ( split ('', $string) ) {
+	unless ( defined $prev ) {
+	    $prev = $ev->[ord($_)];
+	    @res = $_;
+	    next;
+	}
+	my $this = $ev->[ord($_)] || '.undef';
+	my $kw = $kr->{$prev,$this};
+	if ( !defined $kw || $kw == 0 ) {
+	    $res[$#res] .= $_;
+	}
+	else {
+	    $res[$#res] =~ s/([()\\]|[^\040-\176])/sprintf("\\%o",ord($1))/eg;
+	    $res[$#res] = "(".$res[$#res].")";
+	    push (@res, $kw, $_);
+	}
+	$prev = $this;
+    }
+    $res[$#res] =~ s/([()\\]|[^\040-\176])/sprintf("\\%o",ord($1))/eg;
+    $res[$#res] = "(".$res[$#res].")";
+    wantarray ? @res : \@res;
+}
+
 sub AUTOLOAD {
     # This is adapted from Gisle Aas' Font-AFM 1.17
     no strict 'vars';
@@ -288,9 +334,10 @@ PostScript::FontMetrics - module to fetch data from Adobe Font Metrics file
 
 =over 4
 
-=item error => [ 'die' | 'warn' ]
+=item error => [ 'die' | 'warn' | 'ignore' ]
 
-How errors must be handled.
+How errors must be handled. Default is to call die().
+In any case, new() returns a undefined result.
 
 =item verbose => I<value>
 
@@ -366,6 +413,47 @@ Default pointsize is 1.
 Returns the width of the string scaled to pointsize, taking kerning
 into account.
 Default pointsize is 1.
+
+=item kstring ( string )
+
+Returns an array reference (in scalar context) or an array (in array
+context) with substrings of the given string, interspersed with
+kerning info. The kerning info is the amount of movement needed for
+the correct kerning, in character space (which is usually 1000 times a
+PostScript point). The substrings are ready for printing: non-ASCII
+characters have been encoded and parentheses are put around them.
+
+For example, for a given font, the following call:
+
+    $typesetinfo = $metrics->kstring ("ILVATAB");
+
+could return in $typesetinfo:
+
+    [ "(IL)", -97, "(V)", -121, "(A)", -92, "(T)", -80, "(AB)" ]
+
+There are several straightforward ways to process this.
+
+By translating to a series of 'show' and 'rmoveto' operations:
+
+    while ( @$typesetinfo ) {
+	print PS (shift @$typesetinfo, " show\n");
+	last unless @$typesetinfo;
+	printf PS ("%.3f 0 rmoveto\n",
+		   ((shift @$typesetinfo)*$fontsize)/1000);
+    }
+
+Or, assuming the following definition in the PostScript preamble (48
+is the font size):
+
+    /Fpt 48 1000 div def
+    /TJ {{ dup type /stringtype eq
+      { show }
+      { Fpt mul 0 rmoveto }
+      ifelse } forall } bind def
+
+the following Perl code would suffice:
+
+    print PS ("[ @$typesetinfo ] TJ\n");
 
 =back
 
