@@ -2,16 +2,28 @@
 # Author          : Johan Vromans
 # Created On      : Mon Feb  8 11:46:56 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 15:25:32 2000
-# Update Count    : 75
+# Last Modified On: Fri Apr 13 16:43:29 2001
+# Update Count    : 86
 # Status          : Stable
 
 # Verify perl version.
 require 5.000;
+use Config;
 
 use ExtUtils::MakeMaker;
 
 my @scripts = qw(fontsampler font2pfa font2pfb);
+my $usrbin = "/usr/bin";
+my $installscript = $Config{installscript};
+
+print STDERR <<EOD unless $installscript eq $usrbin;
+
+WARNING: This Makefile will install user accessible scripts.
+The location for these scripts is $installscript.
+You may consider to pass INSTALLSCRIPT=$usrbin (or some other
+convenient location) to "make install".
+
+EOD
 
 WriteMakefile
   (
