@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jul  3 17:08:56 2000
-# Update Count    : 532
+# Last Modified On: Mon Jul  3 21:59:23 2000
+# Update Count    : 542
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -311,6 +311,26 @@ sub lineskip {
     my ($self, $skip) = @_;
     $self->{lineskip} = $skip if $skip;
     $self->{lineskip};
+}
+
+=head2 linebreak
+
+Example:
+
+    $ts->linebreak(\&break);
+
+Sets or gets the code to be executed when C<ps_textbox> advances due
+to a line break. The subroutine is called with a reference to the
+current vertical position and should adjust the value. The routine may
+return PostScript instructions that will be included in the result of
+C<ps_textbox>.
+
+=cut
+
+sub linebreak {
+    my ($self, $skip) = @_;
+    $self->{linebreak} = $skip if $skip;
+    $self->{linebreak};
 }
 
 =head2 color
@@ -841,6 +861,7 @@ sub _ps_textbox {
     my $wd = $xi;		# accumulated width
     my $ret = '';		# accumulated output
     my $lskip = $cur0->lineskip; # line skip (fixed)
+    my $lbreak = $cur0->{linebreak};
     my $maxwidth = 0;		# max width of textbox
 
     # Setup global values for this font.
@@ -866,8 +887,17 @@ sub _ps_textbox {
 	my $nsp = 0;		# available space for stretching
 
 	# Discard possible leading/trailing space.
-	shift(@res) if $overflow && !ref($res[0]);
-	pop (@res) unless ref($res[-1]);
+	shift(@res) while $overflow && !ref($res[0]);
+
+	my $ts = $res[-1];
+	if ( ref($ts) && UNIVERSAL::isa($ts,PostScript::BasicTypesetter::) ) {
+	    pop(@res);
+	}
+	else {
+	    undef $ts;
+	}
+	pop (@res) until ref($res[-1]);
+	push (@res, $ts) if $ts;
 
 	foreach ( @res ) {
 	    if ( ref($_) ) {
@@ -975,7 +1005,12 @@ sub _ps_textbox {
 	    # No. Fill what we have.
 	    if ( $flush->() ) {
 		# Advance to next line.
-		$y -= $lskip;
+		if ( $lbreak ) {
+		    $ret .= $lbreak->(\$y);
+		}
+		else {
+		    $y -= $lskip;
+		}
 
 		# Reset.
 		@res = ();
@@ -1042,6 +1077,7 @@ sub _ps_simpletextbox {
 
     # Line skip (baselines).
     my $lineskip = $self->{lineskip};
+    my $lbreak = $self->{linebreak};
 
     my @res;
     my $maxwidth = 0;		# max width of textbox
@@ -1063,7 +1099,7 @@ sub _ps_simpletextbox {
     # Subroutine code starts here.
 
     # Split into space-separated pieces (let's call them "words").
-    my @text = split (/\s+/, $t, -1);
+    my @text = split (/\s/, $t, -1);
     foreach my $str ( @text ) {
 	# Width of this "word".
 	my $w = $self->stringwidth($str);
@@ -1072,7 +1108,12 @@ sub _ps_simpletextbox {
 	    # No -> flush what we have.
 	    $flush->();
 	    # Advance to next line.
-	    $y -= $lineskip;
+	    if ( $lbreak ) {
+		$ret .= $lbreak->(\$y);
+	    }
+	    else {
+		$y -= $lineskip;
+	    }
 	    # Reset.
 	    @res = ();
 	    $wd = -$wspace;
