@@ -2,13 +2,13 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Dec 18 18:46:27 2002
-# Update Count    : 43
+# Last Modified On: Thu Dec 19 10:54:17 2002
+# Update Count    : 47
 # Status          : Released
 
 ################ Module Preamble ################
 
-package Font::TTF::Type42;
+package PostScript::Font::TTtoType42;
 
 use 5.006;
 
@@ -217,6 +217,10 @@ sub glyphnames {
 
 sub write_afm {
     my ($self, $file) = @_;
+    CORE::open(my $fd, ">", $file) or die("$file: $!\n");
+    print $fd (${$self->afm_as_string});
+    close($fd);
+    $self;
 }
 
 ################ Internal routines ################
@@ -344,13 +348,13 @@ __END__
 
 =head1 NAME
 
-Font::TTF::Type42 - Wrap a TrueType font into PostScript Type42
+PostScript::Font::TTtoType42 - Wrap a TrueType font into PostScript Type42
 
 =head1 SYNOPSIS
 
-    use Font::TTF::Type42;
+    use PostScript::Font::TTtoType42;
     # Open a TrueType font.
-    my $font = Font::TTF::Type42::->open("Arial.ttf");
+    my $font = PostScript::Font::TTtoType42::->open("Arial.ttf");
     # Write a Type42 font.
     $font->write("Arial.t42");
     # Get the font data (scalar ref).
@@ -360,8 +364,8 @@ Font::TTF::Type42 - Wrap a TrueType font into PostScript Type42
 
 =head1 DESCRIPTION
 
-Font::TTF::Type42 is a subclass of Font::TTF::Font. It knows how to
-wrap a TrueType font into PostScript Type42 format.
+PostScript::Font::TTtoType42 is a subclass of Font::TTF::Font. It
+knows how to wrap a TrueType font into PostScript Type42 format.
 
 =head1 METHODS
 
@@ -428,7 +432,3 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See either the
 GNU General Public License or the Artistic License for more details.
 
 =cut
-
-# Local Variables:
-# compile-command: "perl -Mblib=/home/jv/wrk/Font-TTF-0.32 -MType42 -e 'Font::TTF::Type42->open(q(/home/jv/lib/fonts/ttfonts/g/gara0000))->write(q(xx))'"
-# End:
