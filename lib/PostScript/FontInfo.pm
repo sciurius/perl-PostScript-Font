@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Mar  7 15:51:24 1999
-# Update Count    : 36
+# Last Modified On: Thu May 13 11:46:35 1999
+# Update Count    : 37
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -21,6 +21,7 @@ $VERSION = "1.0";
 
 my $trace;
 my $verbose;
+my $error;
 
 sub new {
     my $class = shift;
@@ -33,14 +34,15 @@ sub new {
 
     $trace = lc($atts{trace});
     $verbose = $trace || lc($atts{verbose});
+    $error = lc($atts{error});
 
     eval {
 	$self->_loadinfo;
     };
 
     if ( $@ ) {
-	die ($@) unless lc($atts{error}) eq "warn";
-	warn ($@);
+	die ($@)  unless $error eq "warn";
+	warn ($@) unless $error eq "ignore";
 	return undef;
     }
 
@@ -116,9 +118,10 @@ PostScript::FontInfo - module to fetch data from PostScript font C<.inf> files
 
 =over 4
 
-=item error => [ 'die' | 'warn' ]
+=item error => [ 'die' | 'warn' | 'ignore' ]
 
-How errors must be handled.
+How errors must be handled. Default is to call die().
+In any case, new() returns a undefined result.
 
 =item verbose => I<value>
 
