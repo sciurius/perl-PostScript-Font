@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 28 19:34:55 2000
-# Update Count    : 429
+# Last Modified On: Sat Jul  1 13:49:35 2000
+# Update Count    : 442
 # Status          : Released
 
 ################ Common stuff ################
@@ -29,6 +29,7 @@ my $vector = 0;
 my $verbose = 0;
 my $manualfeed = 0;
 my $famskip = 1;
+my $altshow = 0;		# use alternative glyph show
 my $title = "Font Samples";
 my ($debug, $trace, $test) = (0, 0, 0);
 
@@ -86,7 +87,7 @@ foreach my $file ( @ARGV ) {
 
 	# Register the glyph names.
 	my %glyphtbl = map { $_ => 1 } @$glyphs;
-	if ( join("",keys %glyphtbl) eq ".notdef" ) {
+	if ( !$altshow && join("",keys %glyphtbl) eq ".notdef" ) {
 	    print STDERR ($font->FileName, 
 			  ": Only '.notdef' glyphs found, skipped\n");
 	    next;
@@ -185,6 +186,7 @@ sub preamble {
 	    $select = 1 if $details    && $1 eq "details";
 	    $select = 1 if !$details   && $1 eq "samples";
 	    $select = 1 if $manualfeed && $1 eq "manualfeed";
+	    $select = 1 if $altshow    && $1 eq "altshow";
 	    next;
 	}
 	next unless $select;
@@ -200,7 +202,16 @@ sub dofont {
     my ($name, $enc, $font) = @_;
     my $start = $page;
 
-    unless ( defined $enc ) {	# 1-page report
+    if ( $altshow ) {
+	setuppage ();
+	include_font ($font);
+	print STDOUT ("/$name     FontShow1 showpage\n");
+	print STDOUT ("/$name   0 FontShow2 showpage\n");
+	print STDOUT ("/$name 256 FontShow2 showpage\n");
+	print STDOUT ("/$name 512 FontShow2 showpage\n");
+	finishpage ();
+    }
+    elsif ( !defined $enc ) {	# 1-page report
 	setuppage ();
 	include_font ($font);
 	print STDOUT ("/$name FontShow0\n");
@@ -293,6 +304,7 @@ sub options {
 			       'title=s' => \$title,
 			       'include!' => \$include,
 			       'famskip!' => \$famskip,
+#			       altshow => \$altshow,
 			       verbose => \$verbose,
 			       trace => \$trace,
 			       help => \$help,
@@ -572,58 +584,59 @@ FontSamplerDict begin
   DoTitle () show
   0 NewEncoding length 1 sub DoBlock
 } def
+%-
+%+ altshow
+% print font sample page1 -- encoded characters
+/FontShow1 {
+  /FName exch def	% font name
+  /F FName findfont def
+  /F24 F 24 scalefont def
 %
-% % print font sample page1 -- encoded characters
-% /FontShow1 {
-%   /FName exch def	% font name
-%   /F FName findfont def
-%   /F24 F 24 scalefont def
+  70 190 translate
+  0.80 dup scale
+  DoTitle (, characters 0-255) show
+  0 255 DoBlock
+} def
 %
-%   70 190 translate
-%   0.80 dup scale
-%   DoTitle (, characters 0-255) show
-%   0 255 DoBlock
-% } def
-%
-% % print font sample page2 -- section of unenecoded characters
-% /FontShow2 {
-%   /Sect exch def
-%   /FName exch def	% font name
-%   /F FName findfont def
-%   F /CharStrings known {
-%     % Find and display the unencoded characters.
-%     /Encoded F /Encoding get length dict def
-%     F /Encoding get { true Encoded 3 1 roll put } forall
-%     /Unencoded [ 
-%       F /CharStrings get { pop dup Encoded exch known { pop } if } forall
-%     ] def
-%     %/Count Unencoded length def
-%     %Count 0 gt {
-%     %  (%%[) print FName 40 string cvs print
-%     %  Count (: ) print 10 string cvs print ( unencoded characters]%%\n) print
-%     %} if
-%     % Print 256 block section of the unencoded characters.
-%     Sect 256 Unencoded length 1 sub Sect 255 add min {
-%       dup 256 add Unencoded length min 1 index sub
-%       Unencoded 3 1 roll getinterval TempEncoding copy
-%       /BlockEncoding exch def
-%       /BlockCount BlockEncoding length def
-%       save
-%       F length dict F {
-%         1 index /FID eq { pop pop } { 2 index 3 1 roll put } ifelse }
-%       forall dup /Encoding TempEncoding put
-%       /* exch definefont
-%       /F exch def
-%       /F24 F 24 scalefont def
-% 
-%       70 190 translate
-%       0.80 dup scale
-%       DoTitle (, unencoded characters) show
-%       0 BlockCount 1 sub DoBlock
-%       restore
-%     } for
-%   } if
-% } def
+% print font sample page2 -- section of unenecoded characters
+/FontShow2 {
+  /Sect exch def
+  /FName exch def	% font name
+  /F FName findfont def
+  F /CharStrings known {
+    % Find and display the unencoded characters.
+    /Encoded F /Encoding get length dict def
+    F /Encoding get { true Encoded 3 1 roll put } forall
+    /Unencoded [ 
+      F /CharStrings get { pop dup Encoded exch known { pop } if } forall
+    ] def
+    %/Count Unencoded length def
+    %Count 0 gt {
+    %  (%%[) print FName 40 string cvs print
+    %  Count (: ) print 10 string cvs print ( unencoded characters]%%\n) print
+    %} if
+    % Print 256 block section of the unencoded characters.
+    Sect 256 Unencoded length 1 sub Sect 255 add min {
+      dup 256 add Unencoded length min 1 index sub
+      Unencoded 3 1 roll getinterval TempEncoding copy
+      /BlockEncoding exch def
+      /BlockCount BlockEncoding length def
+      save
+      F length dict F {
+        1 index /FID eq { pop pop } { 2 index 3 1 roll put } ifelse }
+      forall dup /Encoding TempEncoding put
+      /* exch definefont
+      /F exch def
+      /F24 F 24 scalefont def
+
+      70 190 translate
+      0.80 dup scale
+      DoTitle (, unencoded characters) show
+      0 BlockCount 1 sub DoBlock
+      restore
+    } for
+  } if
+} def
 %-
 %+ samples
 /languagelevel where
