@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Oct 22 14:40:07 2003
-# Update Count    : 185
+# Last Modified On: Thu Oct 23 14:12:54 2003
+# Update Count    : 186
 # Status          : Released
 
 ################ Module Preamble ################
@@ -15,7 +15,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = "0.02";
+our $VERSION = "0.03";
 
 use base qw(Font::TTF::Font);
 

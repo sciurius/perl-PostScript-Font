@@ -2,8 +2,8 @@
 # Author          : Andrew Ford
 # Created On      : March 2001
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Oct 22 14:43:47 2003
-# Update Count    : 44
+# Last Modified On: Thu Oct 23 14:12:02 2003
+# Update Count    : 45
 # Status          : Development
 
 ################ Module Preamble ################
@@ -20,7 +20,7 @@ use IO qw(File);
 use File::Spec;
 
 use vars qw($VERSION @ISA $AUTOLOAD);
-$VERSION = "0.07";
+$VERSION = "0.08";
 
 use PostScript::FontMetrics;
 use PostScript::StandardEncoding;

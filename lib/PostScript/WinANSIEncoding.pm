@@ -2,15 +2,15 @@
 # Author          : Johan Vromans
 # Created On      : Wed Jun 18 06:37:31 2003
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 18 06:58:51 2003
-# Update Count    : 10
+# Last Modified On: Thu Oct 23 14:11:32 2003
+# Update Count    : 11
 # Status          : Released
 
 ################ Module Preamble ################
 
 package PostScript::WinANSIEncoding;
 
-$VERSION = "1.00";
+$VERSION = "1.01";
 
 use 5.005;
 use strict;

@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Oct 22 14:39:58 2003
-# Update Count    : 462
+# Last Modified On: Thu Oct 23 14:12:41 2003
+# Update Count    : 463
 # Status          : Released
 
 ################ Module Preamble ################
@@ -20,7 +20,7 @@ use PostScript::StandardEncoding;
 use PostScript::ISOLatin1Encoding;
 
 use vars qw($VERSION);
-$VERSION = "1.03";
+$VERSION = "1.04";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.

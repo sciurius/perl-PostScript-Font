@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Oct 22 14:43:30 2003
-# Update Count    : 465
+# Last Modified On: Thu Oct 23 14:12:12 2003
+# Update Count    : 466
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,7 +19,7 @@ use IO qw(File);
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.05";
+$VERSION = "1.06";
 
 use constant FONTSCALE => 1000;		# normal value for font design
 

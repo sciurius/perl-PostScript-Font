@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Oct 22 14:43:18 2003
-# Update Count    : 56
+# Last Modified On: Thu Oct 23 14:12:25 2003
+# Update Count    : 57
 # Status          : Released
 
 ################ Module Preamble ################
@@ -17,7 +17,7 @@ BEGIN { require 5.005; }
 use IO qw(File);
 
 use vars qw($VERSION);
-$VERSION = "1.04";
+$VERSION = "1.05";
 
 sub new {
     my $class = shift;

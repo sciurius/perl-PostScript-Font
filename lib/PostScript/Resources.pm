@@ -1,8 +1,8 @@
 # RCS Status      : $Id$# Author          : Johan Vromans
 # Created On      : Januari 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Oct 22 14:43:56 2003
-# Update Count    : 186
+# Last Modified On: Thu Oct 23 14:11:52 2003
+# Update Count    : 187
 # Status          : Released
 
 ################ Module Preamble ################
@@ -18,7 +18,7 @@ use File::Basename;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.02";
+$VERSION = "1.03";
 
 my $ResourcePath = ".";		# default standard resource path
 my $defupr = "PSref.upr";	# principal resource file
