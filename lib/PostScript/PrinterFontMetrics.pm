@@ -2,8 +2,8 @@
 # Author          : Andrew Ford
 # Created On      : March 2001
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Dec 23 21:27:24 2002
-# Update Count    : 27
+# Last Modified On: Tue Dec 24 18:56:42 2002
+# Update Count    : 43
 # Status          : Development
 
 ################ Module Preamble ################
@@ -20,7 +20,11 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION @ISA $AUTOLOAD);
-$VERSION = "0.06";
+$VERSION = "0.07";
+
+use PostScript::FontMetrics;
+use PostScript::StandardEncoding;
+
 @ISA = qw(PostScript::FontMetrics);
 
 # Definitions of the PFM file layout
@@ -169,8 +173,8 @@ sub DeviceInfoFields { return @pfm_postscript_info_fields; }
 sub CharWidthData {
     my $self = shift;
     my $char = $self->_pfm_header->{dfFirstChar};
-    require PostScript::StandardEncoding;
-    my $encoding = PostScript::StandardEncoding->array;
+    my $encoding =
+      $self->{encodingvector} ||= PostScript::StandardEncoding->array;
     my $widthdata = {};
     foreach my $width (@{$self->_pfm_extent_table}) {
         my $char = $encoding->[$char++];
@@ -180,16 +184,17 @@ sub CharWidthData {
 }
 
 sub EncodingVector {
-    require PostScript::StandardEncoding;
-    PostScript::Encoding->array;
+    my $self = shift;
+    $self->{encodingvector} ||= PostScript::StandardEncoding->array;
 }
 
 sub KernData {
     my $self = shift;
     my $raw_kerndata = $self->_pfm_kerndata;
     my %enc_kerndata;
-    require PostScript::StandardEncoding;
-    my $encoding = PostScript::StandardEncoding->array;
+
+    my $encoding =
+      $self->{encodingvector} ||= PostScript::StandardEncoding->array;
     while (my($pair, $kern) = each(%$raw_kerndata)) {
         my($c1,$c2) = unpack("aa", $pair);
         $enc_kerndata{$encoding->[ord $c1], $encoding->[ord $c2]} = $kern;
