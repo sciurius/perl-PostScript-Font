@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed May 19 19:43:41 1999
-# Update Count    : 281
+# Last Modified On: Fri Jul  9 18:16:02 1999
+# Update Count    : 291
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -17,12 +17,13 @@ BEGIN { require 5.005; }
 use IO;
 
 use vars qw($VERSION);
-$VERSION = "1.0";
+$VERSION = "1.01";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.
+# The ttf2pt1 is used to convert TrueType fonts to Type1.
 # The ttftot42 is used to convert TrueType fonts to Type42.
-use vars qw($t1disasm $ttftot42);
+use vars qw($t1disasm $ttf2pt1 $ttftot42);
 
 # Adobe StandardEncoding.
 my @StandardEncoding;
@@ -207,18 +208,31 @@ sub _loadfont ($) {
 	die ("$fn: Expecting $sz bytes, got $len bytes\n");
     }
 
-    if ( $data eq "\0\1\0\0" && defined $ttftot42 ) {
+    if ( $data eq "\0\1\0\0" ) {
+	my $cmd;
+	if ( defined $ttf2pt1 ) {
+	    $cmd = "$ttf2pt1 -ef '$fn' - 2>/dev/null |";
+	    print STDERR ("$fn: Converting TrueType font to Type1\n")
+	      if $verbose;
+	}
+	elsif ( defined $ttftot42 ) {
+	    $cmd = "$ttftot42 -fc '$fn'|";
+	    print STDERR ("$fn: Converting TrueType font to Type42\n")
+	      if $verbose;
+	}
+	else {
+	    die ("$fn: Cannot convert TrueType font\n");
+	}
+
 	$fh->close;
 	$type = "TTF";
 	my $fn = $fn;
 	#### WARNING: This is Unix specific! ####
 	$fn =~ s/(['\\])/\\$1/g;
-	my $cmd = "$ttftot42 -fc '$fn'|";
 	print STDERR ("+ $cmd\n") if $trace;
 	$fh->open ($cmd) || die ("$cmd: $!\n");;
 	$sz = -1;
 	$len = 0;
-	print STDERR ("$fn: Converting TrueType font to Type42\n") if $verbose;
     }
 
     while ( $fh->sysread ($data, 32768, $len) > 0 ) {
@@ -378,11 +392,24 @@ sub _pfa2asm ($;$) {
 	my $fn = $self->{file};
 	#### WARNING: This is Unix specific! ####
 	$fn =~ s/[\\']/\\$1/g;
-	print STDERR ("+ $t1disasm '$fn'|\n") if $trace;
-	my $fh = new IO::File ("$t1disasm '$fn'|");
+	my $cmd = "$t1disasm '$fn'";
+	if ( $self->{type} eq 'TTF' ) {
+	    if ( defined $ttf2pt1 ) {
+		$cmd = "$ttf2pt1 -osthf '$fn' - 2>/var/tmp/ttf2pt1.log";
+	    }
+	    elsif ( defined $ttftot42 ) {
+		$cmd = "$ttftot42 -fc '$fn' | $t1disasm";
+	    }
+	    else {
+		die ("$fn: Cannot convert TrueType font\n");
+	    }
+	}
+
+	print STDERR ("+ $cmd |\n") if $trace;
+	my $fh = new IO::File ("$cmd |");
 	local ($/);
 	my $newdata = <$fh>;
-	$fh->close or die ($self->{file}, ": $!");
+	$fh->close or warn ($cmd, ": return ". sprintf("%x", $?), "\n");
 	$newdata =~ s/\015\012?/\n/g;
 	return \$newdata;
     }
