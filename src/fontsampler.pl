@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu May 13 11:53:21 1999
-# Update Count    : 364
+# Last Modified On: Fri Jun 11 16:48:41 1999
+# Update Count    : 365
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -157,9 +157,9 @@ sub setuppage {
     $page++;
     print STDOUT ("%%Page: $page $page\n",
 		  "save FontSamplerDict begin\n",
-		  "($date) $title (Page $page) Header\n",
-		  "0 0 moveto 0 900 rlineto 550 0 rlineto ",
-		  "0 -900 rlineto closepath clip\n");
+		  "($date) $title (Page $page) Header\n");
+    print STDOUT ("0 0 moveto 0 900 rlineto 550 0 rlineto ",
+		  "0 -900 rlineto closepath clip\n") unless $details;
 }
 
 sub finishpage {
