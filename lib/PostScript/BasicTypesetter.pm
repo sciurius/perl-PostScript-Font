@@ -3,13 +3,13 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Jul  2 12:14:40 2000
-# Update Count    : 511
+# Last Modified On: Mon Jul  3 16:57:43 2000
+# Update Count    : 528
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
 
-$VERSION = 1.0;
+$VERSION = "1.01";
 
 use 5.005;
 use strict;
@@ -254,6 +254,7 @@ sub reencode {
 	_error ("Invalid encoding: $baseenc");
 	return;
     }
+    $self->metrics->{tp_reencodebase} = $baseenc;
 
     # Reencode according to the vector..
     if ( $vec ) {
@@ -274,7 +275,6 @@ sub reencode {
     # Form a new name for the font.
     $self->metrics->{tp_encodedfontname} =
       $self->{metrics}->FontName . "-" . $tag;
-
 }
 
 =head2 fontsize
@@ -407,6 +407,25 @@ sub textwidth {
     $self->{textwidth};
 }
 
+=head2 ord
+
+Example:
+
+    $ord = $ts->ord("quotedblleft");
+
+Returns the ordinal value of the named glyph in the current encoding,
+or C<undef> if this glyph is currently not encoded.
+
+This is a convenience method that calls the C<ord> method of the
+associated FontMetrics object.
+
+=cut
+
+sub ord {
+    my ($self, $glyph) = @_;
+    $self->metrics->ord ($glyph);
+}
+
 ################ PostScript code builders ################
 
 # All ps_ routines return a printable PostScript string.
@@ -458,8 +477,10 @@ vector will be named I<prefix>C<Vec>.
 
 =item base
 
-The base encoding. This should be either C<StandardEncoding> (default)
-or C<ISOLatin1Encoding>.
+The base encoding. This should be either C<StandardEncoding> or
+C<ISOLatin1Encoding>. It defaults to the value supplied with a
+preceding C<reencode> call, or C<StandardEncoding> if no such call has
+been issued.
 
 =item vec
 
@@ -474,7 +495,7 @@ sub ps_reencodesub {
     my ($self) = shift;
 
     my %atts = ( name => "ReEncode",
-		 base => "AdobeStandardEncoding",
+		 base => $self->metrics->{tp_reencodebase} || "AdobeStandardEncoding",
 		 vec  => "embedded",
 		 @_);
 
