@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Feb  8 11:46:56 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Dec 20 18:29:24 2002
-# Update Count    : 93
+# Last Modified On: Tue Dec 24 18:51:59 2002
+# Update Count    : 94
 # Status          : Stable
 
 # Verify perl version.
@@ -46,7 +46,7 @@ WriteMakefile
    ($] >= 5.005) ?
    ( AUTHOR	=> 'Johan Vromans (jvromans@squirrel.nl)',
      ABSTRACT	=> 'Modules to get info for/from PostScript fonts' ) : (),
-   VERSION      => "1.07",
+   VERSION      => "1.08",
    PREREQ_PM	=> { 'Getopt::Long' => 2.00, 'IO' => 0 },
    EXE_FILES    => [ map { "script/$_" } @scripts ],
    # *.pm files will be picked up automatically from ./lib
