@@ -9,6 +9,7 @@ lib/PostScript/PrinterFontMetrics.pm
 lib/PostScript/Resources.pm
 lib/PostScript/StandardEncoding.pm
 lib/PostScript/ISOLatin1Encoding.pm
+lib/PostScript/ISOLatin9Encoding.pm
 lib/PostScript/BasicTypesetter.pm
 lib/PostScript/PseudoISO.pm
 lib/PostScript/Font/TTtoType42.pm
