@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Oct 19 21:33:08 1999
-# Update Count    : 408
+# Last Modified On: Wed Jan 12 09:16:09 2000
+# Update Count    : 409
 # Status          : Released
 
 ################ Module Preamble ################
@@ -416,6 +416,9 @@ sub AUTOLOAD {
     no strict 'vars';
 
     if ( $AUTOLOAD =~ /::DESTROY$/ ) {
+	# Prevent the eval from clobbering outer eval error status.
+	local ($@);
+	# Define a dummy destoyer, and jump tp it.
 	eval "sub $AUTOLOAD {}";
 	goto &$AUTOLOAD;
     }
