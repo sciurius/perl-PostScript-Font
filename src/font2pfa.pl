@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : January 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jan  6 19:02:35 1999
-# Update Count    : 10
+# Last Modified On: Sun Feb  7 15:47:04 1999
+# Update Count    : 18
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -22,31 +22,31 @@ $my_version .= '*' if length('$Locker$ ') > 12;
 
 use Getopt::Long 2.00;
 my $verbose = 0;
-my $type = "pfa";
+my $type = $0 =~ /pfb$/ ? "pfb" : "pfa";
 my ($debug, $trace) = (0, 0);
-&options;
+options ();
 
 ################ Presets ################
 
 use FindBin;
 use lib $FindBin::Bin;
-use PSFonts;
+use PostScript::Font;
 
 my $TMPDIR = $ENV{'TMPDIR'} || '/usr/tmp';
 
 ################ The Process ################
 
-my $font = PostScript::Type1::loadfont (shift(@ARGV),
-					error => 'die',
-					check => 'relaxed',
-					trace => $trace,
-					format => $type,
-				       );
+my $font = new PostScript::Font (shift(@ARGV),
+				 error => 'die',
+				 verbose => $verbose,
+				 trace => $trace,
+				 format => $type,
+				);
 
 if ( @ARGV ) {
     open (STDOUT, ">$ARGV[0]") || die ("$ARGV[0]: $!\n");
 }
-print STDOUT ($font);
+print STDOUT ($font->FontData);
 
 ################ Subroutines ################
 
@@ -56,15 +56,15 @@ sub options {
 
     # Process options.
     if ( @ARGV > 0 && $ARGV[0] =~ /^[-+]/ ) {
-	&usage 
-	    unless &GetOptions (ident	=> \$ident,
-				verbose	=> \$verbose,
-				"ascii|pfa"  => sub { $type = "pfa" },
-				"binary|pfb" => sub { $type = "pfb" },
-				"asm"	     => sub { $type = "asm" },
-				trace	=> \$trace,
-				help	=> \$help,
-				debug	=> \$debug)
+	usage ()
+	    unless GetOptions (ident	=> \$ident,
+			       verbose	=> \$verbose,
+			       "ascii|pfa"  => sub { $type = "pfa" },
+			       "binary|pfb" => sub { $type = "pfb" },
+			       "asm"	     => sub { $type = "asm" },
+			       trace	=> \$trace,
+			       help	=> \$help,
+			       debug	=> \$debug)
 		&& !$help;
     }
     print STDERR ("This is $my_package [$my_name $my_version]\n")
@@ -84,6 +84,7 @@ Usage: $0 [options] [input [output]]
 EndOfUsage
     exit 1;
 }
+
 =pod
 
 =head1 NAME
@@ -94,8 +95,8 @@ pfb2pfa - decodes binary encoded PostScript fonts
 
   pfb2pfa [options] [input [output]]
 
-    -ascii|pfa		decodes to .pfa format
-    -binary|pfb		encodes to .pfb format
+    -ascii|pfa		decodes to .pfa (ASCII) format
+    -binary|pfb		encodes to .pfb (binary) format
     -help		this message
     -ident		show identification
     -verbose		verbose information
@@ -138,5 +139,26 @@ Prints program identification.
 More verbose information.
 
 =back
+
+=head1 AUTHOR
+
+Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
+
+=head1 COPYRIGHT and DISCLAIMER
+
+This program is Copyright 1990,1999 by Johan Vromans.
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+If you do not have a copy of the GNU General Public License write to
+the Free Software Foundation, Inc., 675 Mass Ave, Cambridge,
+MA 02139, USA.
 
 =cut

@@ -2,10 +2,10 @@
 my $RCS_Id = '$Id$ ';
 
 # Author          : Johan Vromans
-# Created On      : Tue Sep 15 15:59:04 1992
+# Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jan 22 12:13:18 1999
-# Update Count    : 134
+# Last Modified On: Sun Feb  7 15:47:50 1999
+# Update Count    : 357
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -21,11 +21,20 @@ $my_version .= '*' if length('$Locker$ ') > 12;
 ################ Program parameters ################
 
 use Getopt::Long 2.00;
+
+my $details = 0;
+my $align = 0;
 my $include = 1;
+my $vector = 0;
 my $verbose = 0;
-my $title = "";
+my $manualfeed = 0;
+my $title = "Font Samples";
 my ($debug, $trace, $test) = (0, 0, 0);
+
 options ();
+
+$align = $align ? 2 : 1;
+$title = ps_str ($title);
 
 ################ Presets ################
 
@@ -33,92 +42,216 @@ use FindBin;
 use lib $FindBin::Bin;
 use PostScript::Font;
 
+if ( $details && !defined $PostScript::Font::t1disasm ) {
+    foreach ( split (':', $ENV{PATH}) ) {
+	if ( -x "$_/t1disasm" ) {
+	    $PostScript::Font::t1disasm = "t1disasm";
+	    print STDERR ("Using $_/t1disasm\n") if $verbose;
+	}
+    }
+}
+
 my $TMPDIR = $ENV{'TMPDIR'} || '/usr/tmp';
+
+my $stdglyphs = PostScript::Font::StandardEncoding() if $details;
 
 ################ The Process ################
 
-my $samples = 999;
+my $date = scalar(localtime());
 my $page = 0;
-my $lastfam = '';
-my $date = localtime(time);
+my $samples = $details ? 0 : 999;
+my $lastfam = "" unless $details;
 
-my @needed = qw(Times-Roman);	# fonts %%Include-d
-my @supplied = ();		# fonts %%Supplied
+my %f_required = ( "Times-Roman" => 1 ); # fonts %%Included-d
+my %f_supplied = ();			 # fonts supplied
 
-print STDERR ("Warning: no -title specified\n") if $title eq "";
-$title = ps_str ($title);
+# PostScript preamble.
 preamble ();
-my $file;
 
-foreach $file ( @ARGV ) {
+# Attributes for PostScript::Font.
+my %atts = ( trace => $trace, verbose => $verbose, error => 'warn' );
 
-    my $font = new PostScript::Font ($file,
-				     verbose => $verbose, trace => $trace,
-				     error => 'warn');
+# Insert font definitions, extracting the font names on the fly.
+foreach my $file ( @ARGV ) {
+
+    # Read the font into memory.
+    my $font = new PostScript::Font ($file, %atts);
     next unless defined $font;
 
-    my $name = $font->name;
-    my $fam = $font->family;
-    unless ( $name ) {
-	print STDERR ("$file: Missing /FontName\n");
+    # Must have a name.
+    unless ( $font->FontName ) {
+	warn ("$file: No FontName found, skipped\n");
 	next;
     }
 
-    if ( $samples >= 38 ) {
-	print STDOUT ("showpage\n") if $page;
-	$page++;
-	print STDOUT ("%%Page: $page $page\n");
-	print STDOUT ("($date) $title (Page $page) Header\n");
-	$samples = 0;
-    }
-    if ( $samples == 0 ) {
-	$lastfam = $fam;
-    }
-    elsif ( $fam ne $lastfam ) {
-	$lastfam = $fam;
-	if ( $lastfam and $page > 0 ) {
-	    $samples++;
-	}
-    }
+    if ( $details ) {
 
-    print STDOUT ("save\n");
-    if ( $include ) {
-	print STDOUT ("%%BeginResource: font ", $font->name, "\n");
-	print STDOUT ($font->data, "\n");
-	print STDOUT ("%%EndResource\n");
-	push (@supplied, $font->name);
+	# Get the glyphs.
+	my $glyphs = $font->FontGlyphs;
+	unless ( defined $glyphs ) {
+	    print STDERR ($font->FileName, ": No glyphs found, skipped\n");
+	    next;
+	}
+
+	# For fonts with 256 or less glyphs, there is no need to provide
+	# an explicit encoding vector. PostScript can work it out.
+	my $enc;
+	if ( @$glyphs <= 256 && !$vector ) {
+	    print STDERR ($font->FileName, ": ", scalar(@$glyphs),
+			  " glyphs, 1 page\n") if $verbose;
+	}
+
+	# For the larger fonts, construct the vector.
+	else {
+	    print STDERR ($font->FileName, ": ", scalar(@$glyphs),
+			  " glyphs, ",
+			  int(scalar(@$glyphs+255)/256),
+			  " pages\n") if $verbose;
+
+	    # Register the glyph names.
+	    my %glyphtbl = map { $_ => 1 } @$glyphs;
+
+	    # Build encoding vector.
+	    # First the elements from the standard encoding.
+	    $enc = [];
+	    foreach ( @$stdglyphs ) {
+		if ( exists $glyphtbl{$_} ) {
+		    push (@$enc, $_);
+		    delete $glyphtbl{$_};
+		}
+	    }
+	    # Then the remaining glyph names.
+	    foreach ( sort keys %glyphtbl ) {
+		push (@$enc, $_);
+	    }
+	}
+
+	dofont ($font->FontName, $enc, $font);
     }
     else {
-	print STDOUT ("%%IncludeResource: font ", $font->name, "\n");
-	push (@needed, $font->name);
+	if ( $samples >= 76 ) {
+	    finishpage () if $page;
+	    setuppage ();
+	    $samples = 0;
+	}
+	if ( $samples == 0 ) {
+	    $lastfam = $font->FamilyName;
+	}
+	elsif ( $font->FamilyName ne $lastfam ) {
+	    $lastfam = $font->FamilyName;
+	    if ( $lastfam and $page > 0 ) {
+		$samples++;
+	    }
+	}
+
+	print STDOUT ("save\n");
+	include_font ($font);
+	print STDOUT ("/", $font->FontName, " ", 800-($samples*10),
+		      " FontSample restore\n");
+	$samples += 2;
     }
-    print STDOUT ("/$name ", 800-($samples*20), " Sample\n");
-    print STDOUT ("restore\n");
-    $samples++;
 }
 
 wrapup ();
+
 exit 0;
 
 ################ Subroutines ################
 
+sub setuppage {
+    $page++;
+    print STDOUT ("%%Page: $page $page\n",
+		  "save FontSamplerDict begin\n",
+		  "($date) $title (Page $page) Header\n");
+}
+
+sub finishpage {
+    print STDOUT ("end restore showpage\n");
+}
+
 sub preamble {
+    print STDOUT ("%!PS-Adobe-3.0\n",
+		  "%\%Creator: $my_name $my_version by ",
+		  "Johan Vromans <jvromans\@squirrel.nl>\n",
+		  "%\%Title: $title\n",
+		  "%\%CreationDate: ".localtime()."\n");
+    my $select = 1;
     while ( <DATA> ) {
-	if ( $title ne "" && /^%%Title:/ ) {
-	    $_ = '%%Title: ' . $title . "\n";
+	$select = 1, next if /^%-/;
+	if ( /^\%\+\s+(\S+)/ ) {
+	    $select = 0;
+	    $select = 1 if $details    && $1 eq "details";
+	    $select = 1 if !$details   && $1 eq "samples";
+	    $select = 1 if $manualfeed && $1 eq "manualfeed";
+	    next;
 	}
+	next unless $select;
+	next if /^\s*%[^%!]/;
+	next unless /\S/;
 	print STDOUT ($_);
     }
 }
 
+sub dofont {
+    # Detailed font page.
+
+    my ($name, $enc, $font) = @_;
+    my $start = $page;
+
+    unless ( defined $enc ) {	# 1-page report
+	setuppage ();
+	include_font ($font);
+	print STDOUT ("/$name FontShow0\n");
+	finishpage ();
+    }
+    else {			# multi-page report
+	# Chop the encoding vector in slices of max. 256 each.
+	for ( my $i = 0; $i < @$enc; $i++ ) {
+	    if ( $i % 256 == 0 ) {
+		print STDOUT ("]\n/$name FontShowV\n\n") if $i;
+		finishpage () if $i;
+		setuppage ();
+		include_font ($font);
+		print STDOUT ("[");
+	    }
+	    print STDOUT ("/", $enc->[$i], "\n");
+	}
+	print STDOUT ("]\n/$name FontShowV\n");
+	finishpage ();
+    }
+
+    while ( ($page - $start) % $align ) {
+	$page++;
+	print STDOUT ("%%Page: $page $page\n",
+		      "showpage\n");
+    }
+}
+
+sub include_font {
+    my ($font) = @_;
+    if ( $include ) {
+	print STDOUT ("%%BeginResource: font ", $font->FontName, "\n",
+		      $font->FontData,
+		      "%%EndResource\n");
+	$f_supplied{$font->FontName} = 1;
+    }
+    else {
+	print STDOUT ("%%IncludeResource: font ", $font->FontName, "\n");
+	$f_required{$font->FontName} = 1;
+    }
+}
+
 sub wrapup {
-    print STDOUT ("showpage\n") if $samples;
+    finishpage () if $samples;
     print STDOUT ("%%Trailer\n");
-    fmtline ("%%DocumentNeededResources:", "font", @needed) if @needed;
-    print STDOUT ("%%DocumentSuppliedResources: procset FontSampler 0 0\n");
-    fmtline ("%%+", "font", @supplied) if @supplied;
     print STDOUT ("%%Pages: $page\n");
-    print STDOUT ("%%EOF\n");
+
+    my @fonts = keys %f_required;
+    fmtline ("%%DocumentNeededResources:", "font", @fonts) if @fonts;
+    @fonts = keys %f_supplied;
+    print STDOUT ("%%DocumentSuppliedResources: procset FontSampler 0 0\n");
+    fmtline ("%%+", "font", @fonts) if @fonts;
+    print ("%%EOF\n");
 }
 
 sub fmtline {
@@ -135,48 +268,12 @@ sub fmtline {
 }
 
 sub ps_str ($) {
-    # Form a string suitable for PostScript. Internal coding is ISO.
+    # Form a string suitable for PostScript.
 
     my ($line) = @_;
-    my $res = '';
+    $line =~ s/([\000-\037\200-\377()\\])/sprintf("\\%03o",$1)/e;
 
-    # Handle ISO chars and quotes.
-    while ( $line =~ /^(.*?)([\200-\377"'()])(.*)$/s ) {      #'"]/{
-	$res .= $1;		# `; # before
-	my $chr = $2;		# the match
-	$line = $3;		# '; # after
-
-	# Quotes
-	if ( $chr eq '"' ) {
-	    $res .= ($res eq '' || $res =~ /\s$/) ? "\\204" : "\\202";
-	}
-	elsif ( $chr eq "'" ) {
-	    if ( $line =~ /^(s-|s\s|t\s)/ ) { # 's-Gravenhage, 't, 's nachts
-		$res .= "'";
-	    }
-	    else {
-		$res .= ($res eq '' || $res =~ /\s$/) ? "`" : "'";
-	    }
-	}
-	# Pseudo-quotes
-	elsif ( $chr eq "\336" ) {
-	    $res .= '\\207';
-	}
-	elsif ( $chr eq "\320" ) {
-	    $res .= "\\206";
-	}
-	# Parenthesis and others
-        elsif ( $chr eq '(' || $chr eq ')' || $chr eq '\\' ) {
-	    $res .= '\\' . $chr;
-	}
-	# Normal ISO
-	else {
-	    $res .= sprintf("\\%03o", ord($chr));
-	}
-    }
-
-    '(' . $res . $line . ')';      		   # return
-
+    "(".$line.")";
 }
 
 sub options {
@@ -186,13 +283,17 @@ sub options {
     # Process options.
     if ( @ARGV > 0 && $ARGV[0] =~ /^[-+]/ ) {
 	&usage 
-	    unless &GetOptions ('ident' => \$ident,
-				'verbose' => \$verbose,
-				'include!' => \$include,
+	    unless &GetOptions (ident => \$ident,
+				'details!' => \$details,
+				align => \$align,
+				manualfeed => \$manualfeed,
+				forcevector => \$vector,
 				'title=s' => \$title,
-				'trace' => \$trace,
-				'help' => \$help,
-				'debug' => \$debug)
+				'include!' => \$include,
+				verbose => \$verbose,
+				trace => \$trace,
+				help => \$help,
+				debug => \$debug)
 		&& !$help;
     }
     print STDERR ("This is $my_package [$my_name $my_version]\n")
@@ -202,9 +303,12 @@ sub options {
 sub usage {
     print STDERR <<EndOfUsage;
 This is $my_package [$my_name $my_version]
-Usage: $0 [options] [.pfa file ...]
-    -title XXX		page title
-    -[no]include	do [not] include font files
+Usage: $0 [options] fontfile [...]
+    -details		show font details instead of samples
+    -align		align to double page (only with -details)
+    -manualfeed		manual feed paper
+    -title XXX		descriptive title
+    -[no]include	include the font definition (default)
     -help		this message
     -ident		show identification
     -verbose		verbose information
@@ -222,8 +326,11 @@ fontsampler - make sample pages from PostScript fonts
 fontsampler [options] [PostScript font files ...]
 
  Options:
-   -title XXX		optional page title
-   -[no]include         do [not] include font files
+   -details		show font details instead of samples
+   -align		align to double page (only with -details)
+   -manualfeed		manual feed paper
+   -title XXX		descriptive title
+   -include		include the font definition (default)
    -ident		show identification
    -help		brief help message
    -man                 full documentation
@@ -231,41 +338,57 @@ fontsampler [options] [PostScript font files ...]
 
 =head1 DESCRIPTION
 
-B<fontsampler> makes quick access sample pages of PostScript fonts by
-printing the font name and a selection of characters. Each font gets
-one line of information, allowing for some 30 or more font samples per
-page.
+B<fontsampler> writes a PostScript document to standard output to make
+sample pages of PostScript fonts.
 
-The program takes, as command line arguments, a series of PostScript
-font files. Each file should contain one ASCII encoded font (a so
-called C<.pfa> file), or a binary encoded font (a so called C<.pfb>
-file).
-
-Each font is defined within its own environment, and flushed from
-memory after it is used. This allows the results to be printed on most
-PostScript printers.
+The program takes, as command line arguments, PostScript font files.
+Each of These files should contain an ASCII encoded font (a so called
+C<.pfa> file), or a binary encoded font (a so called C<.pfb> file).
 
 The resultant PostScript document conforms to Adobe's Document
-Structuring Conventions (DSC) version 3.0.
+Structuring Conventions (DSC), version 3.0.
+
+The program can run in one of two modes, depending on the B<-details>
+option. Without this option, from every font the name and a small
+sample of characters is printed, up to 50 font samples per page.
+
+With the B<-details> option, every font gets at least one page of
+output. These pages contain detailed information about all the glyphs
+that are present in the font, starting with the glyphs as defined in
+the ISO Latin1 encoding, and followed by the glyphs are not part of
+this encoding. Each page can take up to 256 glyphs.
 
 =head1 OPTIONS
 
 =over 4
 
-=item B<-include>
+=item B<-details>
 
-The font definitions are included in the resultant PostScript
-document. This is enabled by default, and required for all fonts that
-are not resident in your printer.
+Enable detailed output.
 
-By disabling B<include> (with B<-noinclude>), no font data will be
-included, and DSC comments are used to
-notice the print manager to insert to font data when the job is
-printed.
+=item B<-align>
+
+With B<-details>, start every new font on an even page. Useful for
+n-up processing and duplex printing.
+
+=item B<-manualfeed>
+
+Manual feed is requested when the job is printed. Requires a printer
+that can handle PostScript Level 2 of above.
 
 =item B<-title> I<XXX>
 
-A descriptive title to be printed on every page.
+A descriptive title that is printed on top of each page.
+
+=item B<->[B<no>]B<include>
+
+When enabled, the font definitions are inserted in the PostScript output. This results in a self-contained PostScript document that can be printed directly.
+
+When disabled, DSC comments are inserted in the output that need to be
+processed by a suitable print manager (unless all fonts are resident
+in the printer).
+
+B<-incldue> is enabled by default.
 
 =item B<-help>
 
@@ -283,37 +406,243 @@ More verbose information.
 
 =head1 BUGS AND PROBLEMS
 
+If a font is shown in a one-page detail page, and it gets substituted
+by a multi-page font, the PostScript engine will crash.
+This usually happens if the font cannot be found, and the PostScript
+engine substitutes the (multi-page) Courier font.
+
+=head1 AUTHOR
+
+Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
+
+=head1 COPYRIGHT and DISCLAIMER
+
+This program is Copyright 1990,1999 by Johan Vromans.
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+If you do not have a copy of the GNU General Public License write to
+the Free Software Foundation, Inc., 675 Mass Ave, Cambridge,
+MA 02139, USA.
 
 =cut
+
 __END__
-%!PS-Adobe-3.0
-%%Creator: Johan Vromans <jvromans@squirrel.nl>
-%%Title: (fonts)
 %%Pages: (atend)
 %%DocumentNeededResources: (atend)
 %%DocumentSuppliedResources: (atend)
+%%DocumentPaperSizes: A4
 %%EndComments
 %%BeginResource: procset FontSampler 0 0
-/Sample {
+/FontSamplerDict 40 dict def
+FontSamplerDict begin
+%+ details
+%
+% This piece of PostScript program prints all character entries in a
+% font.
+% It is based on Ghostscript's prfont.ps program.
+% Modifications: 
+% - Scaled for A4 paper, 256 glyphs per page.
+% - Turned into a structured document.
+%
+/min { 2 copy gt { exch } if pop } bind def
+% do single character of page
+% output to rectangle ll=(0,-24) ur=(36,24)
+/DoChar {
+  /C exch def
+  /S (_) dup 0 C put def
+  /N F /Encoding get C get def
+
+  % print code name, width and char name
+  /W F setfont S stringwidth pop def
+  T6 setfont
+  % N /.notdef ne {0 -20 moveto N Temp cvs show} if
+  0 -20 moveto N Temp cvs show
+  0 -12 moveto
+  % C Base Temp cvrs show (  ) show
+  W 0.0005 add Temp cvs 0 5 getinterval show
+
+  % print char with reference lines
+  N /.notdef ne {
+    3 0 translate
+    0 0 moveto F24 setfont S show
+    /W S stringwidth pop def
+    0 -6 moveto 0 24 lineto
+    W -6 moveto W 24 lineto
+    -3 0 moveto W 3 add 0 lineto
+    0 setlinewidth stroke
+  } if
+} def
+
+% print page title
+/DoTitle {
+  /Times-Roman findfont 18 scalefont setfont
+  18 10.5 Inch moveto FName Temp cvs show
+} def
+
+% print one block of characters
+/DoBlock {	% firstcode lastcode
+  /FirstCode 2 index def
+  1 exch {
+    /I exch def
+    /Xn I FirstCode sub 16 mod def /Yn I FirstCode sub 16 idiv def
+    gsave
+    Xn 36 mul 9 add Yn -56 mul 9.5 Inch add translate
+    I DoChar
+    grestore
+  } for
+} def
+
+% print sample page -- font with max. 256 glyphs
+/FontShow0 {
+  /FName exch def	% font name
+  /F FName findfont def
+  % Construct a new encoding vector, consisting of all the ISO Latin1
+  % glyphs this font knows, followed by the unencoded glyphs.
+  /Done 256 dict def
+  /NewEncoding [
+      ISOLatin1Encoding {
+        dup F /CharStrings get exch known {
+	  dup Done exch known { pop } { dup Done exch true put } ifelse
+	} { pop } ifelse
+      } forall
+      F /CharStrings get {
+        pop dup ISOLatin1Dict exch known { pop } if
+      } forall
+  ] def
+  F length dict F {
+    1 index /FID eq { pop pop } { 2 index 3 1 roll put } ifelse
+  } forall
+  dup /Encoding NewEncoding put
+  /* exch definefont
+  /F exch def
+  /F24 F 24 scalefont def
+  70 190 translate
+  0.80 dup scale
+  DoTitle () show
+  0 NewEncoding length 1 sub DoBlock
+} def
+
+% print sample page -- font with explicit vector
+/FontShowV {
+  /FName exch def	% font name
+  /NewEncoding exch def
+  /F FName findfont def
+  F length dict F {
+    1 index /FID eq { pop pop } { 2 index 3 1 roll put } ifelse
+  } forall
+  dup /Encoding NewEncoding put
+  /* exch definefont
+  /F exch def
+  /F24 F 24 scalefont def
+  70 190 translate
+  0.80 dup scale
+  DoTitle () show
+  0 NewEncoding length 1 sub DoBlock
+} def
+%
+% % print font sample page1 -- encoded characters
+% /FontShow1 {
+%   /FName exch def	% font name
+%   /F FName findfont def
+%   /F24 F 24 scalefont def
+%
+%   70 190 translate
+%   0.80 dup scale
+%   DoTitle (, characters 0-255) show
+%   0 255 DoBlock
+% } def
+%
+% % print font sample page2 -- section of unenecoded characters
+% /FontShow2 {
+%   /Sect exch def
+%   /FName exch def	% font name
+%   /F FName findfont def
+%   F /CharStrings known {
+%     % Find and display the unencoded characters.
+%     /Encoded F /Encoding get length dict def
+%     F /Encoding get { true Encoded 3 1 roll put } forall
+%     /Unencoded [ 
+%       F /CharStrings get { pop dup Encoded exch known { pop } if } forall
+%     ] def
+%     %/Count Unencoded length def
+%     %Count 0 gt {
+%     %  (%%[) print FName 40 string cvs print
+%     %  Count (: ) print 10 string cvs print ( unencoded characters]%%\n) print
+%     %} if
+%     % Print 256 block section of the unencoded characters.
+%     Sect 256 Unencoded length 1 sub Sect 255 add min {
+%       dup 256 add Unencoded length min 1 index sub
+%       Unencoded 3 1 roll getinterval TempEncoding copy
+%       /BlockEncoding exch def
+%       /BlockCount BlockEncoding length def
+%       save
+%       F length dict F {
+%         1 index /FID eq { pop pop } { 2 index 3 1 roll put } ifelse }
+%       forall dup /Encoding TempEncoding put
+%       /* exch definefont
+%       /F exch def
+%       /F24 F 24 scalefont def
+% 
+%       70 190 translate
+%       0.80 dup scale
+%       DoTitle (, unencoded characters) show
+%       0 BlockCount 1 sub DoBlock
+%       restore
+%     } for
+%   } if
+% } def
+%-
+%+ samples
+/FontSample {
   /y exch def
   dup /FName exch def
   findfont 14 scalefont /F14 exch def
-  x y moveto
+  x0 y moveto
   T setfont FName Temp cvs show
-  x 160 add y moveto
+  x0 160 add y moveto
   F14 setfont (ABCDEFGHIJKL abcdefghijklm 0123456789) show
+              ( MNOPQRSTUVWXYZ mnopqrstuvwxyz) show
 } def
+%-
 /Header {
-  x 500 add y0 20 add moveto T setfont dup stringwidth pop neg 0 rmoveto show
-  x  50 add y0 20 add moveto T setfont show
-  x 500 add 20        moveto T setfont dup stringwidth pop neg 0 rmoveto show
+  x0 500 add y0 20 add moveto T setfont dup stringwidth pop neg 0 rmoveto show
+  x0  50 add y0 20 add moveto T setfont show
+  x0 500 add 20        moveto T setfont dup stringwidth pop neg 0 rmoveto show
 } def
+end
 %%EndResource
 %%EndProlog
 %%IncludeResource: font Times-Roman
 %%BeginSetup
+%+ manualfeed
+%%BeginFeature: *InputSlot Manual feed
+<< /ManualFeed true >> setpagedevice
+%%EndFeature
+%-
+FontSamplerDict begin
 /T /Times-Roman findfont 10 scalefont def
+%+ details
+/T6 /Times-Roman findfont 6 scalefont def
 /Temp 64 string def
-/x 50 def
+/Inch {72 mul} def
+/Base 16 def	% char code output base
+/TempEncoding [ 256 { /.notdef } repeat ] def
+/ISOLatin1Dict 256 dict def
+ISOLatin1Encoding { ISOLatin1Dict exch true put } forall
+%-
+%+ samples
+/Temp 64 string def
+0 0 moveto 0 900 rlineto 550 0 rlineto 0 -900 rlineto closepath clip
+%-
+/x0 50 def
 /y0  800 def
+end
 %%EndSetup

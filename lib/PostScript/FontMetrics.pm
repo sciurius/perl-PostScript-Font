@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Feb  6 17:48:59 1999
-# Update Count    : 299
+# Last Modified On: Sun Feb  7 14:49:30 1999
+# Update Count    : 310
 # Status          : Released
 
 ################ Module Preamble ################
@@ -135,8 +135,20 @@ sub _getwidthdata {
     my $self = shift;
     local ($_);
     my %wx;
-    $self->{encodingvector} = [] unless defined $self->{encodingvector};
+    unless ( defined $self->{encodingvector} ) {
+	if ( defined $self->{encodingscheme} ) {
+	    if ( $self->{encodingscheme} eq "AdobeStandardEncoding" ) {
+		$self->{encodingvector} =
+		  [ @{PostScript::Font::StandardEncoding} ];
+	    }
+	    else {
+		$self->{encodingvector} = [];
+	    }
+	}
+    }
     my $enc = $self->{encodingvector};
+    my $nglyphs = 0;
+    my $nenc = 0;
     foreach ( split (/\n/, $self->{data}) ) {
 	if ( /^StartCharMetrics/ .. /^EndCharMetrics/ ) {
 	    # Only lines that start with "C" or "CH" are parsed.
@@ -145,7 +157,8 @@ sub _getwidthdata {
 	    my ($name) = /\bN\s+(\.?\w+)\s*;/;
 	    my ($wx)   = /\bWX\s+(\d+)\s*;/;
 	    $wx{$name} = $wx;
-	    $enc->[$ix] = $name;
+	    $nglyphs++;
+	    $enc->[$ix] = $name, $nenc++ unless $ix < 0;
 	    next;
 	}
 	last if /^EndFontMetrics/;
@@ -153,6 +166,8 @@ sub _getwidthdata {
     unless ( exists $wx{'.notdef'} ) {
 	$wx{'.notdef'} = 0;
     }
+    print STDERR ($self->FileName, ": Number of glyphs = $nglyphs, ",
+		  "encoded = $nenc\n") if $verbose;
     $self->{Wx} = \%wx;
     $self;
 }
@@ -203,9 +218,12 @@ sub stringwidth {
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
+    if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
+	die ($self->FileName . ": Missing Encoding\n");
+    }
     my $wd = 0;
     foreach ( unpack ("C*", $string) ) {
-	$wd += $wx->{$ev->[$_]};
+	$wd += $wx->{$ev->[$_]||'.undef'};
     }
     $wd * $pt / 1000;
 }
@@ -217,11 +235,14 @@ sub kstringwidth {
 
     my $wx = $self->CharWidthData;
     my $ev = $self->EncodingVector;
+    if ( scalar(@{$self->{encodingvector}}) <= 0 ) {
+	die ($self->FileName . ": Missing Encoding\n");
+    }
     my $kr = $self->KernData;
     my $wd = 0;
     my $prev;
     foreach ( unpack ("C*", $string) ) {
-	my $this = $ev->[$_];
+	my $this = $ev->[$_] || '.undef';
 	$wd += $wx->{$this};
 	if ( defined $prev ) {
 	    my $kw = $kr->{$prev,$this};
@@ -261,6 +282,7 @@ PostScript::FontMetrics - module to fetch data from Adobe Font Metrics file
 
   my $info = new PostScript::FontMetrics (filename, options);
   print STDOUT ("Name = ", $info->FontName, "\n");
+  print STDOUT ("Width of LAV = ", $info->kstringwidth("LAV", 10), "\n");
 
 =head1 OPTIONS
 
