@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 15:17:51 2000
-# Update Count    : 421
+# Last Modified On: Wed Jun 21 15:50:24 2000
+# Update Count    : 425
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -646,107 +646,15 @@ right, C<"c">: centered, C<"j">: justified.
 =cut
 
 sub ps_textbox {
-    my ($self, $x, $xi, $y, $width, $t, $align) = @_;
+    my ($self, $x, $xxi, $yy, $width, $t, $align) = @_;
 
     # Default is flush left.
     $align = (defined $align) ? lc($align) : 'l';
     croak ("ps_textbox: Unhandled alignment '$align'")
       unless $align =~ /^[lrjc]$/;
 
-    return _ps_simpletextbox  ($self, $x, $xi, $y, $width, $t, $align)
-      unless ref ($t);
-
-    return _ps_textbox  ($self, $x, $xi, $y, $width, $t, $align);
-}
-
-# Internal helper routine. This is for the single-font case.
-sub _ps_simpletextbox {
-    my $self = shift;
-
-    my ($x, $xxi, $yy, $width, $t, $align) = @_;
-
-    # Deref arguments, if needed.
-    my $xi = ref($xxi) ? $$xxi : $xxi;
-    my $y = ref($yy) ? $$yy : $yy;
-
-    # Accumulated output.
-    my $ret = $self->ps_setfont();
-
-    # Scaling for fill, only when justifying.
-    my $scale = ($align eq 'j') ? $fontscale/$self->{fontsize} : 0;
-
-    # Width of a space.
-    my $wspace = $self->_stringwidth(" ");
-    croak ("ps_textbox: [".$self->RealFontName."]: missing space")
-      unless $wspace > 0;
-
-    # Accumulated width.
-    my $wd = $xi + -$wspace;
-
-    # Line skip (baselines).
-    my $lineskip = $self->{lineskip};
-
-    my @res;
-
-    my $flush = sub {
-	my $ext = 0;
-	$ext = $scale*(($width - $wd) / (@res-1))
-	  if $align eq "j" && $scale && @res > 1;
-	my $t = $self->FontMetrics->kstring ("@res", $ext);
-
-	# Calculate initial position, and set it.
-	$xi = $width - $wd if $align eq "r";
-	$xi = ($width - $wd)/2 if $align eq "c";
-	$ret .= sprintf ("%.2f %.2f moveto\n", $x+$xi, $y);
-	$ret .= $self->ps_textline ($t);
-    };
-
-    # Subroutine code starts here.
-
-    # Split into space-separated pieces (let's call them "words").
-    my @text = split (/\s+/, $t, -1);
-    foreach my $str ( @text ) {
-	# Width of this "word".
-	my $w = $self->stringwidth($str);
-	# See if it fits.
-	if ( $wd + $wspace + $w > $width ) {
-	    # No -> flush what we have.
-	    $flush->();
-	    # Advance to next line.
-	    $y -= $lineskip;
-	    # Reset.
-	    @res = ();
-	    $wd = -$wspace;
-	    $xi = 0;
-	}
-	# It fits -> append.
-	$wd += $wspace + $w;
-	push (@res, $str);
-    }
-    # Process remainder.
-    if ( @res ) {
-	$align = "l"if $align eq "j";
-	$flush->();
-	# Update indent value.
-	$xi += $wd;
-    }
-    elsif ( ref($yy) ) {
-	$y += $lineskip;	# already updated, so fix it
-    }
-
-    # Update return values.
-    $$yy = $y if ref($yy);
-    $$xxi = $xi if ref($xxi);
-    $ret;
-}
-
-# Internal helper routine, allows mixed fonts.
-sub _ps_textbox {
-    my $self = shift;
     my $cur = $self;
     my $cur0 = $cur;
-
-    my ($x, $xxi, $yy, $width, $t, $align) = @_;
 
     # Deref arguments, if needed.
     my $xi = ref($xxi) ? $$xxi : $xxi;
@@ -776,7 +684,7 @@ sub _ps_textbox {
 	$cur = $cur0;
 	$switch_font->();
 
-	$wd = 0;
+	$wd = $xi;
 	my $t = [$cur];		# current ts vector
 	my $tt = [];		# accumulated vectors
 	my $nsp = 0;		# available space for stretching
@@ -852,6 +760,7 @@ sub _ps_textbox {
 	    push (@args, split (/( )/, $_));
 	}
     };
+    $t = [$t] unless ref($t) && ref($t) eq "ARRAY";
     $preparse->($t);
 
     # @args is now a list of strings (some of which are a single space),
