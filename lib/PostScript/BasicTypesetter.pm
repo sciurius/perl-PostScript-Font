@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Jun 24 17:30:29 2000
-# Update Count    : 477
+# Last Modified On: Sat Jul  1 13:57:43 2000
+# Update Count    : 480
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -397,9 +397,8 @@ sub ps_preamble {
     my $self = shift;
     <<EOD;
 % TJ operator to print typesetinfo vectors.
-% Requires Fpt to be defined!
 /TJ {
-  { dup type /stringtype eq { show } { Fpt mul 0 rmoveto } ifelse }
+  { dup type /stringtype eq { show } { 0 rmoveto } ifelse }
   forall
 } bind def
 EOD
@@ -592,7 +591,6 @@ Call with an explicit C<undef> argument to flush the cache.
 =cut
 
 my $ps_curfont;
-my $ps_curFpt;
 
 sub ps_setfont {
     my $self = shift;
@@ -602,7 +600,6 @@ sub ps_setfont {
     croak ("ps_setfont: Font size not set") unless $size;
     if ( @_ && !defined shift ) {
 	undef $ps_curfont;
-	undef $ps_curFpt;
     }
     unless ( $ps_curfont && $ps_curfont eq "$size $self->fontname" ) {
 	$ret .= sprintf ("/%s findfont %.3g scalefont setfont\n",
@@ -632,14 +629,14 @@ sub ps_tj {
     my $ret = '';
     my $size = $self->{fontsize};
     croak ("ps_tj: Font size not set") unless $size;
-    unless ( $ps_curFpt && $ps_curFpt eq $size/FONTSCALE ) {
-	$ps_curFpt = $size/FONTSCALE;
-	$ret .= "/Fpt $ps_curFpt def\n";
-    }
+    my $scale = $size/FONTSCALE;
     $ret .= "[";
     my $l = 1;
     foreach ( @$t ) {
-	$_ = sprintf("%g", $_) unless /^\(/;
+	unless ( /^\(/ ) {
+	    $_ = sprintf("%.4f", $_*$scale);
+	    s/0+$//;
+	}
 	if ( ($l += length) >= 80 ) {
 	    $ret .= "\n ";
 	    $l = 1 + length;
