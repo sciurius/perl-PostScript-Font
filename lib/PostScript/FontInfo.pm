@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Dec 23 21:27:48 2002
-# Update Count    : 50
+# Last Modified On: Tue Dec 24 18:50:47 2002
+# Update Count    : 54
 # Status          : Released
 
 ################ Module Preamble ################
@@ -54,6 +54,7 @@ sub new {
 
 sub FileName	{ my $self = shift; $self->{file};    }
 sub FontName	{ my $self = shift; $self->{name};    }
+sub FullName	{ my $self = shift; $self->{fullname};}
 sub InfoData	{ my $self = shift; $self->{data};    }
 sub FontFamily	{ my $self = shift; $self->{family};  }
 sub Version	{ my $self = shift; $self->{version}; }
@@ -93,6 +94,7 @@ sub _loadinfo ($) {
     };
 
     $self->{name}    = $1 if $data =~ /^FontName\s+\((\S+)\)$/mi;
+    $self->{fullname}= $1 if $data =~ /^FullName\s+\((.+?)\)$/mi;
     $self->{family}  = $1 if $data =~ /^FamilyName\s+\((.+)\)$/mi;
     $self->{version} = $1 if $data =~ /^Version\s+\((.+)\)$/mi;
     $self->{pcprefix}= lc($1)
@@ -173,13 +175,17 @@ information could not be found in the file.
 
 =item FileName
 
-The name of the file, e.g. 'tir_____.afm'.
+The name of the file, e.g. 'tir_____.inf'.
 
 =item FontName
 
 The name of the font, e.g. 'Times-Roman'.
 
-=item FamilyName
+=item FullName
+
+The full name of the font, e.g. 'Times Roman'.
+
+=item FontFamily
 
 The family name of the font, e.g. 'Times'.
 
