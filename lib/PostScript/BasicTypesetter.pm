@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 16:22:57 2000
-# Update Count    : 428
+# Last Modified On: Fri Jun 23 09:01:27 2000
+# Update Count    : 454
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -16,8 +16,8 @@ use strict;
 use PostScript::FontMetrics;
 use PostScript::ISOLatin1Encoding;
 use Carp;
+use constant FONTSCALE => 1000;
 
-my $fontscale = 1000;
 my $trace;
 my $verbose;
 my $debug;
@@ -161,28 +161,46 @@ Example:
 
     $name = $ts->fontname;
 
-This routine returns the name of the logical font, which may differ
-from the real font name if the font has been reencoded.
+This routine returns the name of the font, which may differ from the
+real font name if the font has been reencoded. For example,
+re-encoding Times-Roman (the real font name) may result in a font that
+will be known as Times-Roman-Latin1. 
 
 =cut
 
-sub fontname {			# OVERRIDED
+sub fontname {
     my ($self) = @_;
 
     # If the font has been reencoded, return the new font name.
-    $self->fontmetrics->{tp_encodedfontname} || $self->fontmetrics->FontName;
+    $self->metrics->{tp_encodedfontname} || $self->metrics->FontName;
 }
 
-=head2 fontmetrics
+=head2 real_fontname
 
-    $metrics = $ts->fontmetrics;
+Example:
+
+    $name = $ts->real_fontname;
+
+This routine returns the real name of the font.
+
+=cut
+
+sub real_fontname {
+    my ($self) = @_;
+
+    $self->metrics->FontName;
+}
+
+=head2 metrics
+
+    $metrics = $ts->metrics;
 
 This routine returns provides access to the associated
 PostScript::FontMetrics object.
 
 =cut
 
-sub fontmetrics {
+sub metrics {
     my ($self) = @_;
 
     $self->{metrics};
@@ -244,17 +262,17 @@ sub reencode {
 	while ( ($k,$v) = each (%$vec) ) {
 	    $base->[ord($k)] = $v;
 	}
-	$self->fontmetrics->{tp_reencodevector} = { %$vec };
+	$self->metrics->{tp_reencodevector} = { %$vec };
     }
     else {
-	undef $self->fontmetrics->{tp_reencodevector};
+	undef $self->metrics->{tp_reencodevector};
     }
 
     # Set the new encoding.
-    $self->fontmetrics->setEncoding ($base);
+    $self->metrics->setEncoding ($base);
 
     # Form a new name for the font.
-    $self->fontmetrics->{tp_encodedfontname} =
+    $self->metrics->{tp_encodedfontname} =
       $self->{metrics}->FontName . "-" . $tag;
 
 }
@@ -311,7 +329,7 @@ sub stringwidth {
 
     my ($str) = @_;
     my $size = $self->{fontsize};
-    $self->fontmetrics->kstringwidth($str)*$size/$fontscale;
+    $self->metrics->kstringwidth($str)*$size/FONTSCALE;
 }
 
 # Internal helper w/o kerning.
@@ -321,7 +339,7 @@ sub _stringwidth {
 
     my ($str) = @_;
     my $size = $self->{fontsize};
-    $self->fontmetrics->stringwidth($str)*$size/$fontscale;
+    $self->metrics->stringwidth($str)*$size/FONTSCALE;
 }
 
 =head2 tjvector
@@ -331,7 +349,7 @@ Example:
     $vec = $ts->tjvector($str);
 
 Returns the typesetting vector for the string, with kerning
-information applied. This vector can be passed to the C<ps_textline>
+information applied. This vector can be passed to the C<ps_tj>
 method.
 
 =cut
@@ -339,7 +357,7 @@ method.
 sub tjvector {
     my $self = shift;
 
-    $self->fontmetrics->kstring(@_);
+    $self->metrics->kstring(@_);
 }
 
 ################ PostScript code builders ################
@@ -422,7 +440,7 @@ sub ps_reencodesub {
     if ( $atts{vec} eq "embedded" ) {
 	$ret .= "/${name} {\n  /newcodesandnames [\n";
 	my ($k, $v);
-	while ( ($k,$v) = each (%{$self->fontmetrics->{tp_reencodevector}}) ) {
+	while ( ($k,$v) = each (%{$self->metrics->{tp_reencodevector}}) ) {
 	    $ret .= sprintf ("    8#%03o /%s\n", ord($k), $v);
 	}
 	$ret .= "  ] def\n";
@@ -463,7 +481,7 @@ EOD
     if ( $atts{vec} ne "embedded" ) {
 	$ret .= "/${name}Vec [\n";
 	my ($k, $v);
-	while ( ($k,$v) = each (%{$self->fontmetrics->{tp_reencodevector}}) ) {
+	while ( ($k,$v) = each (%{$self->metrics->{tp_reencodevector}}) ) {
 	    $ret .= sprintf ("  8#%03o /%s\n", ord($k), $v);
 	}
 	$ret .= "] def\n";
@@ -570,11 +588,11 @@ sub ps_setfont {
     $ret;
 }
 
-=head2 ps_textline
+=head2 ps_tj
 
 Example:
 
-    print $ts->ps_textline ($tj);
+    print $ts->ps_tj ($tj);
 
 Produces the PostScript code to print the text at the current position.
 The argument to this function must be the result of a call to C<tjvector>.
@@ -584,22 +602,22 @@ The argument to this function must be the result of a call to C<tjvector>.
 my $ps_curFpt;
 
 # Print a typesetting vector. Use TJ definition.
-sub ps_textline {
+sub ps_tj {
     my $self = shift;
     local ($_);
 
     my ($t) = @_;
     my $ret = '';
     my $size = $self->{fontsize};
-    croak ("ps_textline: Font size not set") unless $size;
-    unless ( $ps_curFpt && $ps_curFpt eq $size/$fontscale ) {
-	$ps_curFpt = $size/$fontscale;
+    croak ("ps_tj: Font size not set") unless $size;
+    unless ( $ps_curFpt && $ps_curFpt eq $size/FONTSCALE ) {
+	$ps_curFpt = $size/FONTSCALE;
 	$ret .= "/Fpt $ps_curFpt def\n";
     }
     $ret .= "[";
     my $l = 1;
     foreach ( @$t ) {
-	$_ = sprintf("%.3g", $_) unless /^\(/;
+	$_ = sprintf("%g", $_) unless /^\(/;
 	if ( ($l += length) >= 80 ) {
 	    $ret .= "\n ";
 	    $l = 1 + length;
@@ -653,6 +671,21 @@ sub ps_textbox {
     croak ("ps_textbox: Unhandled alignment '$align'")
       unless $align =~ /^[lrjc]$/;
 
+    return _ps_simpletextbox  ($self, $x, $xxi, $yy, $width, $t, $align)
+      unless ref ($t);
+
+    return _ps_textbox  ($self, $x, $xxi, $yy, $width, $t, $align);
+}
+
+# Internal helper routine. This is for the multi-font case.
+sub _ps_textbox {
+    my ($self, $x, $xxi, $yy, $width, $t, $align) = @_;
+
+    # Default is flush left.
+    $align = (defined $align) ? lc($align) : 'l';
+    croak ("ps_textbox: Unhandled alignment '$align'")
+      unless $align =~ /^[lrjc]$/;
+
     my $cur = $self;
     my $cur0 = $cur;
 
@@ -661,7 +694,6 @@ sub ps_textbox {
     my $y = ref($yy) ? $$yy : $yy;
 
     my $scale;			# 1000/fontsize
-    my $rscale;			# 1/scaling
     my $wspace;			# width of a space
     my $wd = $xi;		# accumulated width
     my $ret = '';		# accumulated output
@@ -669,10 +701,9 @@ sub ps_textbox {
 
     # Setup global values for this font.
     my $switch_font = sub {
-	$scale = $fontscale/$cur->{fontsize};
-	$rscale = $cur->{fontsize}/$fontscale if $align eq "j";
+	$scale = FONTSCALE/$cur->{fontsize};
 	$wspace = $cur->_stringwidth(" ");
-	croak ("ps_textbox: [".$cur->fontmetrics->FontName."]: missing space")
+	croak ("ps_textbox: [".$cur->metrics->FontName."]: missing space")
 	  unless $wspace > 0;
     };
 
@@ -701,16 +732,16 @@ sub ps_textbox {
 		    $switch_font->();
 		    next;
 		}
-		# string/width pair -> collect the string and tally the width.
-		push (@$t, $_->[0]);
-		$wd += $_->[1];
+		# width/kstring pair -> collect the string and tally the width.
+		$wd += shift(@$_);
+		push (@$t, $_);	# push as ref
 	    }
 	    else {
 		# Width. Collect (scaled).
 		push (@$t, $_*$scale);
 		$wd += $_;
 		# Tally available space.
-		$nsp += $rscale if $align eq "j";
+		$nsp += $_ if $align eq "j";
 	    }
 	}
 	# Collect final ts vector.
@@ -722,17 +753,16 @@ sub ps_textbox {
 	$ret .= sprintf ("%.2f %.2f moveto\n", $x+$xi, $y);
 
 	# Calculate amount of stretch needed.
-	my $need = 0;
-	$need = ($width - $wd) / $nsp
+	my $stretch = 1;
+	$stretch = ($width - $wd + $nsp) / $nsp
 	  if $align eq "j" && $nsp;
 
 	# Process the vectors.
 	foreach $t ( @$tt ) {
 	    $cur = shift(@$t);
 	    $ret .= $cur->ps_setfont;
-	    $t = [map { $_ =~ /^\(/ ? $_ : $_+$need } @$t]
-	      if $need && $align eq "j";
-	    $ret .= $cur->ps_textline ($t);
+	    $t = [map { ref($_) ? @$_ : $_*$stretch } @$t];
+	    $ret .= $cur->ps_tj ($t);
 	}
     };
 
@@ -801,9 +831,9 @@ sub ps_textbox {
 	    $overflow++;
 	}
 	# It fits -> append.
-	# Push strings as a [PostScript string,width] pair, and spaces as a
+	# Push strings as a [width,kstring] pair, and spaces as a
 	# number.
-	push (@res, $arg eq " " ? $w : [$cur->ps_str($arg),$w]);
+	push (@res, $arg eq " " ? $w : [$w, $cur->metrics->kstring($arg)]);
 	$wd += $w;
     }
 
@@ -812,10 +842,90 @@ sub ps_textbox {
 	$align = "l" if $align eq "j"; # disable justify
 	$flush->();
 	# Update indent value.
-	$xi += $wd if ref($xxi);
+	$xi = $wd;
     }
     elsif ( ref($yy) ) {
 	$y += $lskip;	# already updated, so fix it
+    }
+
+    # Update return values.
+    $$yy = $y if ref($yy);
+    $$xxi = $xi if ref($xxi);
+    $ret;
+}
+
+# Internal helper routine. This is for the single-font case.
+# About 30% faster.
+sub _ps_simpletextbox {
+    my ($self, $x, $xxi, $yy, $width, $t, $align) = @_;
+
+    # Deref arguments, if needed.
+    my $xi = ref($xxi) ? $$xxi : $xxi;
+    my $y = ref($yy) ? $$yy : $yy;
+
+    # Accumulated output.
+    my $ret = $self->ps_setfont();
+
+    # Scaling for fill, only when justifying.
+    my $scale = ($align eq 'j') ? FONTSCALE/$self->fontsize : 0;
+
+    # Width of a space.
+    my $wspace = $self->_stringwidth(" ");
+    croak ("ps_textbox: [".$self->real_fontname."]: missing space")
+      unless $wspace > 0;
+
+    # Accumulated width.
+    my $wd = $xi + -$wspace;
+
+    # Line skip (baselines).
+    my $lineskip = $self->{lineskip};
+
+    my @res;
+
+    my $flush = sub {
+	my $ext = 0;
+	$ext = $scale*(($width - $wd) / (@res-1))
+	  if $align eq "j" && $scale && @res > 1;
+	my $t = $self->metrics->kstring ("@res", $ext);
+
+	# Calculate initial position, and set it.
+	$xi = $width - $wd if $align eq "r";
+	$xi = ($width - $wd)/2 if $align eq "c";
+	$ret .= sprintf ("%.2f %.2f moveto\n", $x+$xi, $y);
+	$ret .= $self->ps_tj ($t);
+    };
+
+    # Subroutine code starts here.
+
+    # Split into space-separated pieces (let's call them "words").
+    my @text = split (/\s+/, $t, -1);
+    foreach my $str ( @text ) {
+	# Width of this "word".
+	my $w = $self->stringwidth($str);
+	# See if it fits.
+	if ( $wd + $wspace + $w > $width ) {
+	    # No -> flush what we have.
+	    $flush->();
+	    # Advance to next line.
+	    $y -= $lineskip;
+	    # Reset.
+	    @res = ();
+	    $wd = -$wspace;
+	    $xi = 0;
+	}
+	# It fits -> append.
+	$wd += $wspace + $w;
+	push (@res, $str);
+    }
+    # Process remainder.
+    if ( @res ) {
+	$align = "l"if $align eq "j";
+	$flush->();
+	# Update indent value.
+	$xi += $wd;
+    }
+    elsif ( ref($yy) ) {
+	$y += $lineskip;	# already updated, so fix it
     }
 
     # Update return values.
@@ -837,7 +947,7 @@ __END__
 
     print STDOUT ("%!PS-Adobe-3.0\n",
 		  "%%DocumentResources: font ",
-		  $tr->fontmetrics->FontName, " ",
+		  $tr->metrics->FontName, " ",
 		  "%%Pages: 1\n",
 		  $tr->ps_preamble,
 		  "%%EndPrologue\n",
