@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Dec 23 21:27:07 2002
-# Update Count    : 449
+# Last Modified On: Wed Oct 22 14:39:58 2003
+# Update Count    : 462
 # Status          : Released
 
 ################ Module Preamble ################
@@ -14,7 +14,7 @@ use strict;
 
 BEGIN { require 5.005; }
 
-use IO;
+use IO qw(File);
 use File::Spec;
 use PostScript::StandardEncoding;
 use PostScript::ISOLatin1Encoding;
@@ -535,6 +535,13 @@ sub _getexec ($) {
 sub _die {
     my ($self, @msg) = @_;
     $self->{die}->(@msg);
+}
+
+# PostScript::TTtoType42 is actually an Font::TTF::Font object.
+# Font::TTF::Font uses cyclic structures, so we need this.
+sub DESTROY {
+    my $self = shift;
+    $self->{t42wrapper}->DESTROY if $self->{t42wrapper};
 }
 
 1;
