@@ -283,7 +283,7 @@ sub _loadFontAFM ($) {
 
 	# PostScriptName=the/file.afm
 	if ( $line =~ /^([^=]+)=(.*)$/ ) {
-	    $afm->{$1} = $rscidx.$2;
+	    $afm->{$1} = $rscidx.$2 unless $afm->{$1};
 	    next;
 	}
 	warn ($fn, "[$.]: Invalid FontAFM entry\n")
@@ -330,7 +330,7 @@ sub _loadFontOutline ($) {
 
 	# PostScriptName=the/file.pfa
 	if ( $line =~ /^([^=]+)=(.*)$/ ) {
-	    $pfa->{$1} = $rscidx.$2;
+	    $pfa->{$1} = $rscidx.$2 unless $pfa->{$1};
 	    next;
 	}
 	warn ($fn, "[$.]: Invalid FontOutline entry\n")
