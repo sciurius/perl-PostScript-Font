@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Dec 20 14:40:45 2002
-# Update Count    : 145
+# Last Modified On: Fri Dec 20 18:17:17 2002
+# Update Count    : 174
 # Status          : Released
 
 ################ Module Preamble ################
@@ -20,11 +20,24 @@ our $VERSION = "0.01";
 use base qw(Font::TTF::Font);
 
 use constant CHUNK => 65534;
-use constant DEBUG => 0;
 
 ################ Public Methods ################
 
-# my $f = PostScript::Font::TTtoType42::->open("Arial.ttf");
+# my $f = new PostScript::Font::TTtoType42::("Arial.ttf");
+
+sub new {
+    my $class = shift;
+    my $font = shift;
+    my (%atts) = (error => 'die',
+		  verbose => 0, trace => 0, debug => 0,
+		  @_);
+    my $self = Font::TTF::Font->open($font);
+    $self->{' trace'} = $atts{trace} || $atts{verbose};
+    $self->{' debug'} = $atts{debug} || $atts{trace} || $atts{verbose};
+    bless $self, $class;
+}
+
+# $f->write("Arial.t42");
 
 sub write {
     my ($self, $file) = @_;
@@ -88,6 +101,7 @@ sub as_string {
             "/Encoding StandardEncoding def\n";
 
     # CharStrings definitions.
+    $glyphs = [ ".notdef" ] unless @$glyphs;
     $ret .= "/CharStrings " . scalar(@$glyphs) . " dict dup begin\n";
     my $i = 0;
     foreach ( @$glyphs ) {
@@ -126,7 +140,7 @@ sub as_string {
 			uc unpack("H8", $t), $sum, $start, $len);
 	$csum += $sum + $sum + $start + $len;
 	$start += $len;
-	$start += 2 if $start % 4;
+	$start++ while $start % 4;
       }
       $csum &= 0xffffffff;
       $csum = 0xb1b0afba - $csum;
@@ -151,7 +165,7 @@ sub as_string {
 
 	printf STDERR ("$t: off = 0x%x, len = 0x%x, csum = 0x%x\n",
 		       $self->{$t}->{' OFFSET'}, $len,
-		       $self->{$t}->{' CSUM'}) if DEBUG;
+		       $self->{$t}->{' CSUM'}) if $self->{' trace'};
 
 	# If the glyf table is bigger than a CHUNK, it must be split on 
 	# a glyph boundary...
@@ -186,10 +200,12 @@ sub as_string {
 	}
 
 	# Pad to 4-byte boundary if necessary.
-	if ( $self->{$t}->{' LENGTH'} & 0x3 ) {
-	    printf STDERR ("odd length 0x%x, adjusting...\n", $_) if DEBUG;
-	    $data .= "0000";
-	    $tally += 2;
+	if ( ($len = $self->{$t}->{' LENGTH'}) & 0x3 ) {
+	    printf STDERR ("odd length 0x%x, adjusting...\n", $len)
+	      if $self->{' debug'};
+	    $len = 4 - ($len & 0x3);
+	    $data .= "00" x $len;
+	    $tally += $len;
 	}
     }
 
@@ -484,6 +500,11 @@ sub _getglyphs {
     my $self = shift;
     $self->{post}->read;
     $self->{glyphs} = $self->{post}{VAL};
+    unless ( $self->{glyphs} ) {
+	warn(__PACKAGE__ . ": No glyphs?\n");
+	$self->{glyphs} = [];
+    }
+    $self->{glyphs};
 }
 
 # Generate the sfnts strings for the glyph table, splitting it on glyph
@@ -499,7 +520,7 @@ sub _glyftbl {
 
     my $glyphs = $self->{maxp}->read->{numGlyphs};
     my $locfmt = $self->{head}->read->{indexToLocFormat};
-    print STDERR ("glyphs = $glyphs, locfmt  = $locfmt\n") if DEBUG;
+    print STDERR ("glyphs = $glyphs, locfmt  = $locfmt\n") if $self->{' debug'};
 
     my $start = 0;
     my $off_old = 0;
@@ -525,7 +546,7 @@ sub _glyftbl {
     $$rt += $l;
 
     printf STDERR ("glyf ends: data = 0x%x, tally = 0x%x\n",
-		   length($$rd), $$rt) if DEBUG;
+		   length($$rd), $$rt) if $self->{' debug'};
 }
 
 # Fetch (read) a complete table.
@@ -554,7 +575,7 @@ PostScript::Font::TTtoType42 - Wrap a TrueType font into PostScript Type42
 
     use PostScript::Font::TTtoType42;
     # Open a TrueType font.
-    my $font = PostScript::Font::TTtoType42::->open("Arial.ttf");
+    my $font = PostScript::Font::TTtoType42::->new("Arial.ttf");
     # Write a Type42 font.
     $font->write("Arial.t42");
     # Get the font data (scalar ref).
@@ -571,7 +592,7 @@ knows how to wrap a TrueType font into PostScript Type42 format.
 
 =over
 
-=item open(I<fontname>)
+=item new(I<fontname> [ I<atts> ])
 
 Opens the named TrueType font.
 
