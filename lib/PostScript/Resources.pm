@@ -1,8 +1,8 @@
 # RCS Status      : $Id$# Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 14:52:27 1999
-# Update Count    : 177
+# Last Modified On: Fri Sep 24 18:33:54 1999
+# Update Count    : 178
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -382,7 +382,7 @@ by loading all resource files.
 
 =back
 
-The following options can be passed to the constructor:
+=head1 OPTIONS
 
 =over 4
 

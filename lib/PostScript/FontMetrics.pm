@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 14:54:25 1999
-# Update Count    : 400
+# Last Modified On: Fri Sep 24 18:35:10 1999
+# Update Count    : 407
 # Status          : Released
 
 ################ Module Preamble ################
@@ -442,6 +442,29 @@ PostScript::FontMetrics - module to fetch data from Adobe Font Metrics file
   print STDOUT ("Name = ", $info->FontName, "\n");
   print STDOUT ("Width of LAV = ", $info->kstringwidth("LAV", 10), "\n");
 
+=head1 DESCRIPTION
+
+This package allows Adobe standard font metric files, so called
+C<.afm> files, to be read and (partly) parsed.
+
+True Type fonts are understood as well, their metrics are extracted.
+Currently this requires an external program, I<ttftot42>. This program
+will be used automatically if it can be located in the execution
+C<PATH>. Alternatively, you can set the variable
+C<$PostScript::FontMetrics::ttftot42> (or
+C<$PostScript::Font::ttftot42>) to the name of the actual program. See
+also L<EXTERNAL PROGRAMS>.
+
+=head1 CONSTRUCTOR
+
+=over 4
+
+=item new ( FILENAME [ , OPTIONS ])
+
+The constructor will read the file and parse its contents.
+
+=back
+
 =head1 OPTIONS
 
 =over 4
@@ -459,28 +482,10 @@ Prints verbose info if I<value> is true.
 
 Prints tracing info if I<value> is true.
 
-=back
+=item debug => I<value>
 
-=head1 DESCRIPTION
-
-This package allows Adobe standard font metric files, so called
-C<.afm> files, to be read and (partly) parsed.
-
-True Type fonts are understood as well, their metrics are extracted.
-Currently this requires an external program, I<ttftot42. This program
-will be used automatically if it can be located in the execution
-C<PATH>. Alternatively, you can set the variable
-C<$PostScript::FontMetrics::ttftot42> (or
-C<$PostScript::Font::ttftot42>) to the name of the actual program. See
-also section L<EXTERNAL PROGRAMS>.
-
-=head1 CONSTRUCTOR
-
-=over 4
-
-=item new ( FILENAME )
-
-The constructor will read the file and parse its contents.
+Prints debugging info if I<value> is true.
+Implies 'trace' and 'verbose'.
 
 =back
 
@@ -566,7 +571,7 @@ There are several straightforward ways to process this.
 
 By translating to a series of 'show' and 'rmoveto' operations:
 
-    foreach ( ... ) {
+    foreach ( @$typesetinfo ) {
 	if ( /^\(/ ) {
 	    print STDOUT ($_, " show\n");
 	}

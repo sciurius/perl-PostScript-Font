@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 15:15:51 1999
-# Update Count    : 351
+# Last Modified On: Fri Sep 24 18:35:04 1999
+# Update Count    : 355
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -605,7 +605,7 @@ I<ttftot42>. This program will be used automatically if it can be
 located in the execution C<PATH>. Alternatively, you can set the
 variable C<$PostScript::Font::ttftot42> (or
 C<$PostScript::FontMetrics::ttftot42>) to the name of the actual
-program. See also section L<EXTERNAL PROGRAMS>.
+program. See also L<EXTERNAL PROGRAMS>.
 
 =head1 CONSTRUCTOR
 
@@ -638,6 +638,11 @@ Prints verbose info if I<value> is true.
 =item trace => I<value>
 
 Prints tracing info if I<value> is true.
+
+=item debug => I<value>
+
+Prints debugging info if I<value> is true.
+Implies 'trace' and 'verbose'.
 
 =back
 
@@ -698,7 +703,7 @@ The format in which the data is kept internally. See the B<format> option.
 =item FontData
 
 The complete contents of the file, normalised to Unix-style line endings.
-It is in the format as returned by the I<dataformat> method.
+It is in the format as returned by the I<DataFormat> method.
 
 =item Encoding
 

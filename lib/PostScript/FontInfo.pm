@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 14:54:40 1999
-# Update Count    : 38
+# Last Modified On: Fri Sep 24 18:34:58 1999
+# Update Count    : 40
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -114,6 +114,21 @@ PostScript::FontInfo - module to fetch data from PostScript font C<.inf> files
   my $info = new PostScript::FontInfo (filename, options);
   print STDOUT ("Name = ", $info->name, "\n");
 
+=head1 DESCRIPTION
+
+This package allows font info files, so called C<.inf> files, to be
+read and (partly) parsed.
+
+=head1 CONSTRUCTOR
+
+=over 4
+
+=item new ( FILENAME [ , OPTIONS ] )
+
+The constructor will read the file and parse its contents.
+
+=back
+
 =head1 OPTIONS
 
 =over 4
@@ -131,20 +146,10 @@ Prints verbose info if I<value> is true.
 
 Prints tracing info if I<value> is true.
 
-=back
+=item debug => I<value>
 
-=head1 DESCRIPTION
-
-This package allows font info files, so called C<.inf> files, to be
-read and (partly) parsed.
-
-=head1 CONSTRUCTOR
-
-=over 4
-
-=item new ( FILENAME )
-
-The constructor will read the file and parse its contents.
+Prints debugging info if I<value> is true.
+Implies 'trace' and 'verbose'.
 
 =back
 
