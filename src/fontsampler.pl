@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 11 16:48:41 1999
-# Update Count    : 365
+# Last Modified On: Fri Jul  9 18:12:45 1999
+# Update Count    : 369
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -41,6 +41,8 @@ $title = ps_str ($title);
 use PostScript::Font;
 
 # Find binaries for conversions, if needed.
+$PostScript::Font::ttf2pt1 = getexec ("ttf2pt1")
+  if !defined $PostScript::Font::ttf2pt1;
 $PostScript::Font::ttftot42 = getexec ("ttftot42")
   if !defined $PostScript::Font::ttftot42;
 $PostScript::Font::t1disasm = getexec ("t1disasm")
