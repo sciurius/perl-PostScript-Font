@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Feb  8 11:46:56 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Dec 24 18:51:59 2002
-# Update Count    : 94
+# Last Modified On: Tue Dec 24 18:58:12 2002
+# Update Count    : 95
 # Status          : Stable
 
 # Verify perl version.
@@ -28,7 +28,7 @@ EOD
 eval {
     require Font::TTF::Font;
 };
-unless ( $@ ) {
+if ( $@ ) {
     print STDERR <<EOD;
 
 NOTICE: This package handles PostScript fonts. It can also
