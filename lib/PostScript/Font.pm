@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Mar  7 15:51:06 1999
-# Update Count    : 261
+# Last Modified On: Wed May 19 19:43:41 1999
+# Update Count    : 281
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -21,7 +21,8 @@ $VERSION = "1.0";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.
-use vars qw($t1disasm);
+# The ttftot42 is used to convert TrueType fonts to Type42.
+use vars qw($t1disasm $ttftot42);
 
 # Adobe StandardEncoding.
 my @StandardEncoding;
@@ -89,6 +90,7 @@ my $ISOLatin1Encoding =
 
 my $trace;
 my $verbose;
+my $error;
 
 sub new {
     my $class = shift;
@@ -104,6 +106,7 @@ sub new {
 
     $trace = lc($atts{trace});
     $verbose = $trace || lc($atts{verbose});
+    $error = lc($atts{error});
     $atts{format} = "ascii" if lc($atts{format}) eq "pfa";
     $atts{format} = "binary" if lc($atts{format}) eq "pfb";
 
@@ -128,8 +131,8 @@ sub new {
     };
 
     if ( $@ ) {
-	die ($@) unless lc($atts{error}) eq "warn";
-	warn ($@);
+	die ($@)  unless $error eq "warn";
+	warn ($@) unless $error eq "ignore";
 	return undef;
     }
 
@@ -142,6 +145,9 @@ sub FontData	{ my $self = shift; ${$self->{data}}; }
 sub FamilyName	{ my $self = shift; $self->{family};  }
 sub FontType	{ my $self = shift; $self->{type};    }
 sub Version	{ my $self = shift; $self->{version}; }
+sub ItalicAngle	{ my $self = shift; $self->{italic};  }
+sub isFixedPitch{ my $self = shift; $self->{fixed};   }
+sub Weight	{ my $self = shift; $self->{weight};   }
 sub DataFormat  { my $self = shift; $self->{format};  }
 
 sub FontGlyphs {
@@ -186,6 +192,7 @@ sub _loadfont ($) {
 
     my $self = shift;
     my $data;			# font data
+    my $type;
 
     my $fn = $self->{file};
     my $fh = new IO::File;	# font file
@@ -196,12 +203,31 @@ sub _loadfont ($) {
 
     # Read in the font data.
     my $len = 0;
+    unless ( ($len = $fh->sysread ($data, 4, 0)) == 4 ) {
+	die ("$fn: Expecting $sz bytes, got $len bytes\n");
+    }
+
+    if ( $data eq "\0\1\0\0" && defined $ttftot42 ) {
+	$fh->close;
+	$type = "TTF";
+	my $fn = $fn;
+	#### WARNING: This is Unix specific! ####
+	$fn =~ s/(['\\])/\\$1/g;
+	my $cmd = "$ttftot42 -fc '$fn'|";
+	print STDERR ("+ $cmd\n") if $trace;
+	$fh->open ($cmd) || die ("$cmd: $!\n");;
+	$sz = -1;
+	$len = 0;
+	print STDERR ("$fn: Converting TrueType font to Type42\n") if $verbose;
+    }
+
     while ( $fh->sysread ($data, 32768, $len) > 0 ) {
 	$len = length ($data);
     }
     $fh->close;
     print STDERR ("Read $len bytes from $fn\n") if $trace;
-    die ("$fn: Expecting $sz bytes, got $len bytes\n") unless $sz == $len;
+    die ("$fn: Expecting $sz bytes, got $len bytes\n")
+      if $sz > 0 && $sz != $len;
 
     # Make ref.
     $data = \"$data";		#";
@@ -220,9 +246,10 @@ sub _loadfont ($) {
     $$data =~ s/\015\012?/\n/g;
 
     $self->{data} = $data;
+    $self->{type} = $type if defined $type;
 
     if ( $$data =~ /^%!FontType(\d+)\n\/(\S+)\n/ ) {
-	$self->{type} = $1;
+	$self->{type} = $1 unless defined $self->{type};
 	$self->{name} = $2;
     }
     elsif ( $$data =~ /\/FontName\s*\/(\S+)/ ) {
@@ -241,8 +268,17 @@ sub _loadfont ($) {
 	$self->{type} = $1 if $$data =~ /\/FontType\s+(\d+)/;
     }
     $self->{version} = $1 if $$data =~ /\/version\s*\(([^\051]+)\)/;
+    $self->{italic} = $1 if $$data =~ /\/ItalicAngle\s+([-+]?\d+)/;
+    $self->{fixed} = $1 eq "true"
+      if $$data =~ /\/isFixedPitch\s+(true|false)/;
+    if ( $$data =~ /\/Weight\s*\/(\S+)/ ) {
+	$self->{weight} = $1;
+    }
+    elsif ( $$data =~ /\/Weight\s*\(([^\051]+)\)/ ) {
+	$self->{weight} = $1;
+    }
 
-$self;
+    $self;
 }
 
 sub _pfb2pfa ($;$) {
@@ -340,6 +376,7 @@ sub _pfa2asm ($;$) {
 
     if ( defined $t1disasm ) {
 	my $fn = $self->{file};
+	#### WARNING: This is Unix specific! ####
 	$fn =~ s/[\\']/\\$1/g;
 	print STDERR ("+ $t1disasm '$fn'|\n") if $trace;
 	my $fh = new IO::File ("$t1disasm '$fn'|");
@@ -512,6 +549,11 @@ how weird the font information is stored.
 The input font file can be encoded in ASCII (so-called C<.pfa>
 format), or binary (so-called C<.pfb> format).
 
+TrueType fonts are understood as well, they are converted internally
+to Type42 fonts. Currently this requires the variable
+C<$PostScript::Font::ttftot42> to be set to the name of the
+I<ttftot42> program, if you have it.
+
 =head1 CONSTRUCTOR
 
 =over 4
@@ -526,9 +568,10 @@ The constructor will read the file and parse its contents.
 
 =over 4
 
-=item error => [ 'die' | 'warn' ]
+=item error => [ 'die' | 'warn' | 'ignore' ]
 
-How errors must be handled.
+How errors must be handled. Default is to call die().
+In any case, new() returns a undefined result.
 
 =item format => [ 'ascii' | 'pfa' | 'binary' | 'pfb' ]
 
@@ -568,9 +611,17 @@ The family name of the font, e.g. 'Times'.
 
 The version of the font, e.g. '001.007'.
 
+=item ItalicAngle
+
+The italicity of the font, e.g. 0 (normal upright fonts) or -16 (italic font).
+
+=item isFixedPitch
+
+Indicates if this font has fixed pitch.
+
 =item FontType
 
-The font type, e.g. '1'.
+The font type, e.g. '1', or 'TTF'.
 
 =item DataFormat
 
@@ -628,6 +679,11 @@ Returns a reference to an array that contains all the glyphs names for
 ISO-8859-1 (ISO Latin-1) encoding.
 
 =back
+
+=head1 KNOWN BUGS
+
+Invoking external programs (I<t1disasm>, I<ttftot42>) is guaranteed to
+work on Unix only.
 
 =head1 AUTHOR
 
