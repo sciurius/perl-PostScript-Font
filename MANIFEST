@@ -27,3 +27,4 @@ examples/times.upr
 examples/time0000.afm
 examples/time0003.afm
 examples/okay.ps
+perl-PostScript-Font.spec
