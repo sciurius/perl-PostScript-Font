@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Dec 20 18:20:03 2002
-# Update Count    : 428
+# Last Modified On: Fri Dec 20 18:50:03 2002
+# Update Count    : 429
 # Status          : Released
 
 ################ Module Preamble ################
@@ -170,7 +170,7 @@ sub _loadfont ($) {
 	    die ("$fn: Cannot convert True Type font\n");
 	}
 	my $wrapper =
-	  new PostScript::Font::TTtoType42::->($fn,
+	  new PostScript::Font::TTtoType42:: ($fn,
 					      verbose => $verbose,
 					      trace => $trace);
 	$type = "t";
