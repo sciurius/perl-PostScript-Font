@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 15:50:24 2000
-# Update Count    : 425
+# Last Modified On: Wed Jun 21 16:22:57 2000
+# Update Count    : 428
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -155,34 +155,34 @@ sub clone {
 
 =head1 INSTANCE METHODS
 
-=head2 FontName
+=head2 fontname
 
 Example:
 
-    $name = $ts->FontName;
+    $name = $ts->fontname;
 
 This routine returns the name of the logical font, which may differ
 from the real font name if the font has been reencoded.
 
 =cut
 
-sub FontName {			# OVERRIDED
+sub fontname {			# OVERRIDED
     my ($self) = @_;
 
     # If the font has been reencoded, return the new font name.
-    $self->FontMetrics->{tp_encodedfontname} || $self->FontMetrics->FontName;
+    $self->fontmetrics->{tp_encodedfontname} || $self->fontmetrics->FontName;
 }
 
-=head2 FontMetrics
+=head2 fontmetrics
 
-    $metrics = $ts->FontMetrics;
+    $metrics = $ts->fontmetrics;
 
 This routine returns provides access to the associated
 PostScript::FontMetrics object.
 
 =cut
 
-sub FontMetrics {
+sub fontmetrics {
     my ($self) = @_;
 
     $self->{metrics};
@@ -244,17 +244,17 @@ sub reencode {
 	while ( ($k,$v) = each (%$vec) ) {
 	    $base->[ord($k)] = $v;
 	}
-	$self->FontMetrics->{tp_reencodevector} = { %$vec };
+	$self->fontmetrics->{tp_reencodevector} = { %$vec };
     }
     else {
-	undef $self->FontMetrics->{tp_reencodevector};
+	undef $self->fontmetrics->{tp_reencodevector};
     }
 
     # Set the new encoding.
-    $self->FontMetrics->setEncoding ($base);
+    $self->fontmetrics->setEncoding ($base);
 
     # Form a new name for the font.
-    $self->FontMetrics->{tp_encodedfontname} =
+    $self->fontmetrics->{tp_encodedfontname} =
       $self->{metrics}->FontName . "-" . $tag;
 
 }
@@ -311,7 +311,7 @@ sub stringwidth {
 
     my ($str) = @_;
     my $size = $self->{fontsize};
-    $self->FontMetrics->kstringwidth($str)*$size/$fontscale;
+    $self->fontmetrics->kstringwidth($str)*$size/$fontscale;
 }
 
 # Internal helper w/o kerning.
@@ -321,7 +321,7 @@ sub _stringwidth {
 
     my ($str) = @_;
     my $size = $self->{fontsize};
-    $self->FontMetrics->stringwidth($str)*$size/$fontscale;
+    $self->fontmetrics->stringwidth($str)*$size/$fontscale;
 }
 
 =head2 tjvector
@@ -339,7 +339,7 @@ method.
 sub tjvector {
     my $self = shift;
 
-    $self->FontMetrics->kstring(@_);
+    $self->fontmetrics->kstring(@_);
 }
 
 ################ PostScript code builders ################
@@ -422,7 +422,7 @@ sub ps_reencodesub {
     if ( $atts{vec} eq "embedded" ) {
 	$ret .= "/${name} {\n  /newcodesandnames [\n";
 	my ($k, $v);
-	while ( ($k,$v) = each (%{$self->FontMetrics->{tp_reencodevector}}) ) {
+	while ( ($k,$v) = each (%{$self->fontmetrics->{tp_reencodevector}}) ) {
 	    $ret .= sprintf ("    8#%03o /%s\n", ord($k), $v);
 	}
 	$ret .= "  ] def\n";
@@ -463,7 +463,7 @@ EOD
     if ( $atts{vec} ne "embedded" ) {
 	$ret .= "/${name}Vec [\n";
 	my ($k, $v);
-	while ( ($k,$v) = each (%{$self->FontMetrics->{tp_reencodevector}}) ) {
+	while ( ($k,$v) = each (%{$self->fontmetrics->{tp_reencodevector}}) ) {
 	    $ret .= sprintf ("  8#%03o /%s\n", ord($k), $v);
 	}
 	$ret .= "] def\n";
@@ -510,11 +510,11 @@ sub ps_reencode {
 		 vec => "embedded",
 		 @_);
 
-    return "" if $self->{metrics}->FontName eq $self->FontName;
+    return "" if $self->{metrics}->FontName eq $self->fontname;
 
     my $name = $atts{name};
     "/" . $self->{metrics}->FontName . " " .
-      "/" . $self->FontName . " " .
+      "/" . $self->fontname . " " .
 	($atts{vec} eq "embedded" ? "$name" :
 	 ($name . "Vec " . $name . "Sub)")) . "\n";
 }
@@ -562,10 +562,10 @@ sub ps_setfont {
     my $ret = '';
     my $size = $self->{fontsize};
     croak ("ps_setfont: Font size not set") unless $size;
-    unless ( $ps_curfont && $ps_curfont eq "$size $self->FontName" ) {
+    unless ( $ps_curfont && $ps_curfont eq "$size $self->fontname" ) {
 	$ret .= sprintf ("/%s findfont %.3g scalefont setfont\n",
-			 $self->FontName, $size);
-	$ps_curfont = "$size $self->FontName";
+			 $self->fontname, $size);
+	$ps_curfont = "$size $self->fontname";
     }
     $ret;
 }
@@ -672,7 +672,7 @@ sub ps_textbox {
 	$scale = $fontscale/$cur->{fontsize};
 	$rscale = $cur->{fontsize}/$fontscale if $align eq "j";
 	$wspace = $cur->_stringwidth(" ");
-	croak ("ps_textbox: [".$cur->RealFontName."]: missing space")
+	croak ("ps_textbox: [".$cur->fontmetrics->FontName."]: missing space")
 	  unless $wspace > 0;
     };
 
@@ -837,7 +837,7 @@ __END__
 
     print STDOUT ("%!PS-Adobe-3.0\n",
 		  "%%DocumentResources: font ",
-		  $tr->FontMetrics->FontName, " ",
+		  $tr->fontmetrics->FontName, " ",
 		  "%%Pages: 1\n",
 		  $tr->ps_preamble,
 		  "%%EndPrologue\n",
