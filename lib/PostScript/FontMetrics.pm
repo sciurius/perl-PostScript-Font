@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Jan 14 19:00:03 1999
-# Update Count    : 89
+# Last Modified On: Fri Jan 15 15:36:52 1999
+# Update Count    : 96
 # Status          : Released
 
 ################ Copyright ################
@@ -127,6 +127,60 @@ sub loadfont ($@) {
     }
     wantarray ? ( font => $data, name => $name, family => $fam,
 		  version => $version, type => $type ) : $data;
+}
+
+sub loadafm ($@) {
+
+    my ($fn) = shift;
+    my (%atts) = (error => 'die', trace => 0, @_);
+    $trace = lc($atts{trace});
+
+    my $name;			# font name
+    my $type;			# font type
+    my $fam;			# font family
+    my $version;		# font version
+    my $data;			# afm data
+
+    eval {			# so we can use die
+
+	my $fh = new IO::File;	# font file
+	my $sz = -s $fn;	# file size
+
+	$fh->open ($fn) || die ("$fn: $!\n");
+
+	# Read in the afm data.
+	my $len = 0;
+	while ( $fh->sysread ($data, 32768, $len) > 0 ) {
+	    $len = length ($data);
+	}
+	$fh->close;
+	print STDERR ("Read $len bytes from $fn\n") if $trace;
+	die ("$fn: Expecting $sz bytes, got $len bytes\n") unless $sz == $len;
+
+	# Normalise line endings.
+	$data =~ s/\015\012?/\n/g;
+
+	if ( $data !~ /^StartFontMetrics/ || $data !~ /EndFontMetrics$/ ) {
+	    die ("$fn: Not a recognizable AFM file\n");
+	}
+
+    };
+
+    if ( $@ ) {
+	die ($@) unless lc($atts{error}) eq "warn";
+	warn ($@);
+	return undef;
+    }
+
+    if ( wantarray ) {
+	$name    = $1 if $data =~ /^FontName\s+(\S+)$/mi;
+	$fam     = $1 if $data =~ /^FamilyName\s+(.+)$/mi;
+	$version = $1 if $data =~ /^Version\s+(.+)$/mi;
+	return ( afm => $data, name => $name, family => $fam, 
+		 version => $version );
+    }
+
+    $data;
 }
 
 sub _pfb2pfa ($\$) {
