@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 15:23:15 2000
-# Update Count    : 373
+# Last Modified On: Mon Oct  9 17:18:06 2000
+# Update Count    : 374
 # Status          : Released
 
 ################ Module Preamble ################
@@ -142,6 +142,7 @@ sub _loadfont ($) {
     my $sz = -s $fn;	# file size
 
     $fh->open ($fn) || die ("$fn: $!\n");
+    binmode($fh);
     print STDERR ("$fn: Loading font file\n") if $verbose;
 
     # Read in the font data.
