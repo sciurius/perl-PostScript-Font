@@ -1,9 +1,9 @@
 # RCS Status      : $Id$
 # Author          : Johan Vromans
-# Created On      : December 1999
+# Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jan 12 09:16:09 2000
-# Update Count    : 409
+# Last Modified On: Fri Feb  4 10:23:18 2000
+# Update Count    : 412
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,7 +19,7 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.00_02";
+$VERSION = "1.01";
 
 # The ttftot42 program is used to extract metrics from True Type fonts.
 use vars qw($ttftot42);
@@ -626,7 +626,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 1993,1999 by Squirrel Consultancy. All
+This program is Copyright 2000,1998 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify
