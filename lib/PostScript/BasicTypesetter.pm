@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 23 09:09:20 2000
-# Update Count    : 455
+# Last Modified On: Fri Jun 23 13:35:38 2000
+# Update Count    : 457
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -570,9 +570,12 @@ This method keeps track of the settings, and will not produce
 anything if the current settings are already as requested. Hence use
 liberally.
 
+Call with an explicit C<undef> argument to flush the cache.
+
 =cut
 
 my $ps_curfont;
+my $ps_curFpt;
 
 sub ps_setfont {
     my $self = shift;
@@ -580,6 +583,10 @@ sub ps_setfont {
     my $ret = '';
     my $size = $self->{fontsize};
     croak ("ps_setfont: Font size not set") unless $size;
+    if ( @_ && !defined shift ) {
+	undef $ps_curfont;
+	undef $ps_curFpt;
+    }
     unless ( $ps_curfont && $ps_curfont eq "$size $self->fontname" ) {
 	$ret .= sprintf ("/%s findfont %.3g scalefont setfont\n",
 			 $self->fontname, $size);
@@ -598,8 +605,6 @@ Produces the PostScript code to print the text at the current position.
 The argument to this function must be the result of a call to C<tjvector>.
 
 =cut
-
-my $ps_curFpt;
 
 # Print a typesetting vector. Use TJ definition.
 sub ps_tj {
