@@ -60,7 +60,7 @@ To install, unpack the archive, change to the unpacked directory, and
 type:
 
     perl Makefile.PL
-    make all
+    make all test
     make install
 
 For a True Type to Type42 conversion tool, see 
