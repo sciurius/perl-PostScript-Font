@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : Tue Sep 15 15:59:04 1992
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Dec 17 13:29:12 1998
-# Update Count    : 78
+# Last Modified On: Fri Dec 18 09:32:15 1998
+# Update Count    : 92
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -41,6 +41,11 @@ my @todo = ();
 
 &preamble;
 my $file;
+
+# Uncomment one of these lines for the .pfb to .pfa conversion.
+#my $t1ascii = "t1ascii >/dev/null <";	# t1utils
+my $t1ascii = "pfbtops ";		# groff
+
 foreach $file ( @ARGV ) {
 
     if ( $samples >= 38 ) {
@@ -57,7 +62,8 @@ foreach $file ( @ARGV ) {
 	    warn ("$file: skipped (use -include)\n");
 	    next;
 	}
-	$file = "t1ascii < $file 2>/dev/null |";
+	$file = "$t1ascii$file|";
+	print STDERR ("+ $file\n") if $trace;
     }
     open (FONT, $file) || die ("$file: $!\n");
     my $name;
@@ -156,9 +162,87 @@ Usage: $0 [options] [.pfa file ...]
 EndOfUsage
     exit 1;
 }
+=pod
+
+=head1 NAME
+
+fontsampler - make sample pages from PostScript fonts
+
+=head1 SYNOPSIS
+
+fontsampler [options] [PostScript font files ...]
+
+ Options:
+   -[no]include         do [not] include font files
+   -[no]load            do [not] load the fonts from disk
+   -ident		show identification
+   -help		brief help message
+   -man                 full documentation
+   -verbose		verbose information
+
+=head1 DESCRIPTION
+
+B<fontsampler> makes quick access sample pages of PostScript fonts by
+printing the font name and a selection of characters. Each font gets
+one line of information, allowing for some 30 or more font samples per
+page.
+
+The program takes, as command line arguments, a series of PostScript
+font files. Each file should contain one ASCII encoded font (a so
+called C<.pfa> file), or a binary encoded font (a so called C<.pfb>
+file). The binary files are internally ASCIIfied by running the
+B<pfbtops> program that comes with the GNU B<groff> package.
+
+Each font is defined within its own environment, and flushed from
+memory after it is used. This allows the results to be printed on most
+PostScript printers.
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-include>
+
+The font definitions are included in the resultant PostScript
+document. This is required for all fonts that are not resident in your
+printer.
+
+=item B<-load>
+
+The font definitions are dynamically loaded when the resultant
+PostScript document is processed. This only works if your PostScript
+rendering engine runs on the local machine, and has access to the
+files on disk (e.g. B<Ghostscript>, B<Ghostview>). To print the
+document on a PostScript printer, use the B<-include> option.
+
+=item B<-help>
+
+Print a brief help message and exits.
+
+=item B<-ident>
+
+Prints program identification.
+
+=item B<-verbose>
+
+More verbose information.
+
+=back
+
+=head1 BUGS AND PROBLEMS
+
+The resultant PostScript document conforms to Adobe's DSC 2.0, but
+only as far as I know.
+
+The conversion program for binary encoded fonts is hard-wired to
+B<pfbtops> and must be accessible through the normal search C<PATH>.
+Alternatively, the B<t1ascii> program, part of the B<T1utils> package
+can be used. See the source if B<fontsampler> for instructions.
+
+=cut
 __END__
 %!PS-Adobe-2.0
-%%Creator:Johan Vromans
+%%Creator: Johan Vromans <jvromans@squirrel.nl>
 %%Title: (fonts)
 %%Pages: (atend)
 %%DocumentSuppliedProcSets: procs 0 0
