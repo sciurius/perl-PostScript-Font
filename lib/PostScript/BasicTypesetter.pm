@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 23 13:35:38 2000
-# Update Count    : 457
+# Last Modified On: Fri Jun 23 16:40:50 2000
+# Update Count    : 465
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -717,6 +717,7 @@ sub _ps_textbox {
 
     # This is the actual typesetting routine.
     my $flush = sub {
+	my $did = 0;
 	$cur = $cur0;
 	$switch_font->();
 
@@ -765,10 +766,13 @@ sub _ps_textbox {
 	# Process the vectors.
 	foreach $t ( @$tt ) {
 	    $cur = shift(@$t);
+	    next unless @$t;
 	    $ret .= $cur->ps_setfont;
 	    $t = [map { ref($_) ? @$_ : $_*$stretch } @$t];
 	    $ret .= $cur->ps_tj ($t);
+	    $did++;
 	}
+	$did;
     };
 
     # Subroutine code starts here.
@@ -823,17 +827,18 @@ sub _ps_textbox {
 	if ( $wd + $w > $width ) {
 
 	    # No. Fill what we have.
-	    $flush->();
+	    if ( $flush->() ) {
+		# Advance to next line.
+		$y -= $lskip;
 
-	    # Advance to next line.
-	    $y -= $lskip;
-
-	    # Reset.
-	    @res = ();
-	    $wd = 0;
-	    $xi = 0;
+		# Reset.
+		@res = ();
+		$wd = 0;
+		$xi = 0;
+		$overflow++;
+	    }
 	    $cur0 = $cur;
-	    $overflow++;
+
 	}
 	# It fits -> append.
 	# Push strings as a [width,kstring] pair, and spaces as a
@@ -908,7 +913,7 @@ sub _ps_simpletextbox {
 	# Width of this "word".
 	my $w = $self->stringwidth($str);
 	# See if it fits.
-	if ( $wd + $wspace + $w > $width ) {
+	if ( @res && $wd + $wspace + $w > $width ) {
 	    # No -> flush what we have.
 	    $flush->();
 	    # Advance to next line.
