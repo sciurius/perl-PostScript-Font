@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 21 14:55:12 2000
-# Update Count    : 415
+# Last Modified On: Wed Jun 21 15:17:51 2000
+# Update Count    : 421
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -622,12 +622,13 @@ The string will be printed starting at base postion C<$x> and C<$y>.
 If the string exceeds the width C<$w> a line wrap will occur.
 The first line will be indented with C<$xi>.
 
-=for later
 If C<$str> is a reference to an array, this array may contain a mix of
 strings, PostScript::BasicTypesetter objects, and array references
 (recursive). Each string is typeset according to the current
-typesetter, a typesetter object changes the current typesetter for the
-rest of the array.
+typesetter; a typesetter object changes the current typesetter for the
+rest of the array. However, the lineskip value of the initial
+typesetter is used for linewraps, regardless the typesetter currently
+in control.
 
 C<$xi> and/or C<$y> may be references to the actual values. In this
 case, the corresponding values will be updated to reflect the value
@@ -652,14 +653,14 @@ sub ps_textbox {
     croak ("ps_textbox: Unhandled alignment '$align'")
       unless $align =~ /^[lrjc]$/;
 
-    return _ps_textbox  ($self, $x, $xi, $y, $width, $t, $align)
+    return _ps_simpletextbox  ($self, $x, $xi, $y, $width, $t, $align)
       unless ref ($t);
 
-    return _x_ps_textbox  ($self, $x, $xi, $y, $width, $t, $align);
+    return _ps_textbox  ($self, $x, $xi, $y, $width, $t, $align);
 }
 
 # Internal helper routine. This is for the single-font case.
-sub _ps_textbox {
+sub _ps_simpletextbox {
     my $self = shift;
 
     my ($x, $xxi, $yy, $width, $t, $align) = @_;
@@ -740,7 +741,7 @@ sub _ps_textbox {
 }
 
 # Internal helper routine, allows mixed fonts.
-sub _x_ps_textbox {
+sub _ps_textbox {
     my $self = shift;
     my $cur = $self;
     my $cur0 = $cur;
@@ -756,6 +757,7 @@ sub _x_ps_textbox {
     my $wspace;			# width of a space
     my $wd = $xi;		# accumulated width
     my $ret = '';		# accumulated output
+    my $lskip = $cur0->lineskip; # line skip (fixed)
 
     # Setup global values for this font.
     my $switch_font = sub {
@@ -880,7 +882,7 @@ sub _x_ps_textbox {
 	    $flush->();
 
 	    # Advance to next line.
-	    $y -= $cur->lineskip;
+	    $y -= $lskip;
 
 	    # Reset.
 	    @res = ();
@@ -904,7 +906,7 @@ sub _x_ps_textbox {
 	$xi += $wd if ref($xxi);
     }
     elsif ( ref($yy) ) {
-	$y += $cur0->lineskip;	# already updated, so fix it
+	$y += $lskip;	# already updated, so fix it
     }
 
     # Update return values.
