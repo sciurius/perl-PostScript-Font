@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Wed Jun 18 06:37:31 2003
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jun 18 06:48:06 2003
-# Update Count    : 9
+# Last Modified On: Wed Jun 18 06:58:51 2003
+# Update Count    : 10
 # Status          : Released
 
 ################ Module Preamble ################
@@ -60,13 +60,13 @@ sub array {
     wantarray ? @WinANSIEncoding : \@WinANSIEncoding;
 }
 
-1;
-
 if ( !caller ) {
     my @a = array();
     die("Size = ", scalar(@a), ", should be 256\n")
       unless @a == 256;
 }
+
+1;
 
 __END__
 
