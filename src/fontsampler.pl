@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Mar  7 15:37:55 1999
-# Update Count    : 360
+# Last Modified On: Thu May 13 11:53:21 1999
+# Update Count    : 364
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -40,14 +40,11 @@ $title = ps_str ($title);
 
 use PostScript::Font;
 
-if ( $details && !defined $PostScript::Font::t1disasm ) {
-    foreach ( split (':', $ENV{PATH}) ) {
-	if ( -x "$_/t1disasm" ) {
-	    $PostScript::Font::t1disasm = "t1disasm";
-	    print STDERR ("Using $_/t1disasm\n") if $verbose;
-	}
-    }
-}
+# Find binaries for conversions, if needed.
+$PostScript::Font::ttftot42 = getexec ("ttftot42")
+  if !defined $PostScript::Font::ttftot42;
+$PostScript::Font::t1disasm = getexec ("t1disasm")
+  if $details && !defined $PostScript::Font::t1disasm;
 
 my $TMPDIR = $ENV{'TMPDIR'} || '/usr/tmp';
 
@@ -160,7 +157,9 @@ sub setuppage {
     $page++;
     print STDOUT ("%%Page: $page $page\n",
 		  "save FontSamplerDict begin\n",
-		  "($date) $title (Page $page) Header\n");
+		  "($date) $title (Page $page) Header\n",
+		  "0 0 moveto 0 900 rlineto 550 0 rlineto ",
+		  "0 -900 rlineto closepath clip\n");
 }
 
 sub finishpage {
@@ -272,6 +271,17 @@ sub ps_str ($) {
     $line =~ s/([\000-\037\200-\377()\\])/sprintf("\\%03o",$1)/e;
 
     "(".$line.")";
+}
+
+sub getexec ($) {
+    my ($exec) = @_;
+    foreach ( split (':', $ENV{PATH}) ) {
+	if ( -x "$_/$exec" ) {
+	    print STDERR ("Using $_/$exec\n") if $verbose;
+	    return "$_/$exec";
+	}
+    }
+    undef;
 }
 
 sub options {
@@ -634,7 +644,6 @@ ISOLatin1Encoding { ISOLatin1Dict exch true put } forall
 %-
 %+ samples
 /Temp 64 string def
-0 0 moveto 0 900 rlineto 550 0 rlineto 0 -900 rlineto closepath clip
 %-
 /x0 50 def
 /y0  800 def
