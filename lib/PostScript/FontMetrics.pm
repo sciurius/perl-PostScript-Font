@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Nov 15 14:47:38 2000
-# Update Count    : 431
+# Last Modified On: Fri Jan 11 20:49:21 2002
+# Update Count    : 432
 # Status          : Released
 
 ################ Module Preamble ################
@@ -196,7 +196,7 @@ sub _getwidthdata {
 	    # Only lines that start with "C" or "CH" are parsed.
 	    next unless /^CH?\s+(-?\d+)\s*;/;
 	    my $ix = $1;
-	    my ($name) = /\bN\s+(\.?\w+)\s*;/;
+	    my ($name) = /\bN\s+(\.?\w+(?:-\w+)?)\s*;/;
 	    my ($wx)   = /\bWX\s+(\d+)\s*;/;
 	    $wx{$name} = $wx;
 	    $nglyphs++;
