@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Oct 23 14:12:54 2003
-# Update Count    : 186
+# Last Modified On: Sat Feb  5 18:08:15 2005
+# Update Count    : 187
 # Status          : Released
 
 ################ Module Preamble ################
@@ -65,7 +65,7 @@ sub as_string {
     # Font bounding box.
     my $scale = do {
 	my $u = $head->{unitsPerEm};
-	sub {int($_[0] * 1000 / $u)}
+	sub {int($_[0] / $u)}
     };
     my @bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
 
@@ -263,7 +263,7 @@ sub afm_as_string {
     # Font bounding box.
     my $scale = do {
 	my $u = $head->{unitsPerEm};
-	sub {int($_[0] * 1000 / $u)}
+	sub {int($_[0] / $u)}
     };
     my @bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
 
