@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 23 08:29:12 2000
-# Update Count    : 417
+# Last Modified On: Mon Jul  3 16:55:53 2000
+# Update Count    : 426
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,7 +19,7 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.02";
+$VERSION = "1.03";
 
 # The ttftot42 program is used to extract metrics from True Type fonts.
 use vars qw($ttftot42);
@@ -255,10 +255,22 @@ sub _getkerndata {
 
 sub setEncoding {
     my ($self, $enc) = @_;
-    unless ( ref($enc) && ref($enc) eq 'ARRAY' && scalar(@$enc) == 256 ) {
+    if ( ref($enc) && UNIVERSAL::isa($enc,'ARRAY') && scalar(@$enc) == 256 ) {
+	# Array ref is okay.
+    }
+    elsif ( $enc eq "StandardEncoding" ) {
+	require PostScript::StandardEncoding;
+	$enc = [ @{PostScript::StandardEncoding->array} ];
+    }
+    elsif ( $enc eq "ISOLatin1Encoding" ) {
+	require PostScript::ISOLatin1Encoding;
+	$enc = [ @{PostScript::ISOLatin1Encoding->array} ];
+    }
+    else {
 	croak ("Invalid encoding vector");
     }
     $self->{encodingvector} = $enc;
+    delete $self->{_ordcache};
     $self;
 }
 
@@ -391,6 +403,23 @@ sub kstring {
 
     # Return.
     wantarray ? @res : \@res;
+}
+
+sub ord {
+    my ($self, $glyph) = @_;
+
+    # Return from cache if possible.
+    my $ord = $self->{_ordcache}->{$glyph};
+    return $ord if defined $ord;
+
+    # Look it up.
+    $ord = -1;
+    foreach ( @{$self->EncodingVector} ) {
+	$ord++;
+	next unless $_ eq $glyph;
+	return $self->{_ordcache}->{$glyph} = $ord;
+    }
+    undef;
 }
 
 sub _qtfn ($) {
@@ -534,6 +563,12 @@ Returns a reference to a hash with the kerning data for glyph pairs.
 It is indexed by two glyph names (two strings separated by a comma,
 e.g. $kd->{"A","B"}).
 
+=item setEncoding ( vector )
+
+Sets the current encoding vector. The argument must be a reference to
+an array of exactly 256 elements, or the name of a pre-defined
+encoding (C<"StandardEncoding"> or C<"ISOLatin1Encoding">).
+
 =item stringwidth ( string [ , pointsize ] )
 
 Returns the width of the string, in character space units.
@@ -598,6 +633,11 @@ is the font size):
 the following Perl code would suffice:
 
     print PS ("[ @$typesetinfo ] TJ\n");
+
+=item ord
+
+Returns the ordinal value of the named glyph in the current encoding,
+or C<undef> if this glyph is currently not encoded.
 
 =back
 
