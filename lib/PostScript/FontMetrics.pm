@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Feb  4 10:23:18 2000
-# Update Count    : 412
+# Last Modified On: Wed Jun 21 15:24:26 2000
+# Update Count    : 415
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,7 +19,7 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.01";
+$VERSION = "1.02";
 
 # The ttftot42 program is used to extract metrics from True Type fonts.
 use vars qw($ttftot42);
@@ -177,8 +177,9 @@ sub _getwidthdata {
     unless ( defined $self->{encodingvector} ) {
 	if ( defined $self->{encodingscheme} ) {
 	    if ( $self->{encodingscheme} eq "AdobeStandardEncoding" ) {
+		require PostScript::StandardEncoding;
 		$self->{encodingvector} =
-		  [ @{PostScript::Font::StandardEncoding()} ];
+		  [ @{PostScript::StandardEncoding->array} ];
 	    }
 	    else {
 		$self->{encodingvector} = [];
