@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Dec 19 10:54:17 2002
-# Update Count    : 47
+# Last Modified On: Fri Dec 20 14:38:04 2002
+# Update Count    : 144
 # Status          : Released
 
 ################ Module Preamble ################
@@ -24,6 +24,8 @@ use constant DEBUG => 0;
 
 ################ Public Methods ################
 
+# my $f = PostScript::Font::TTtoType42::->open("Arial.ttf");
+
 sub write {
     my ($self, $file) = @_;
 
@@ -32,6 +34,8 @@ sub write {
     close($fd);
     $self;
 }
+
+# my $t42data = ${$f->as_string};
 
 sub as_string {
     my ($self) = @_;
@@ -46,11 +50,11 @@ sub as_string {
     $version = sprintf("%07.3f", $1) if $version =~ /(\d+\.\d+)/;
 
     # Font bounding box.
-    my $u = $head->{unitsPerEm};
-    my @bb = (int($head->{xMin} * 1000 / $u),
-	      int($head->{yMin} * 1000 / $u),
-	      int($head->{xMax} * 1000 / $u),
-	      int($head->{yMax} * 1000 / $u));
+    my $scale = do {
+	my $u = $head->{unitsPerEm};
+	sub {int($_[0] * 1000 / $u)}
+    };
+    my @bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
 
     # Glyph table.
     my $glyphs = $self->glyphs;
@@ -201,12 +205,14 @@ sub as_string {
     \$ret;
 }
 
+# my @glyphs = @{$f->glyphs};
 # Ordered set of glyphs, as they appear in the font.
 sub glyphs {
     my $self = shift;
     $self->{glyphs} ||= $self->_getglyphs;
 }
 
+# my @glyphnames = @{$f->glyphnames};
 # Sorted list of glyph names, no duplicates.
 sub glyphnames {
     my $self = shift;
@@ -215,6 +221,7 @@ sub glyphnames {
     $self->{glyphnames} = [ sort keys %glyphs ];
 }
 
+# $f->write_afm("Arial.afm");
 sub write_afm {
     my ($self, $file) = @_;
     CORE::open(my $fd, ">", $file) or die("$file: $!\n");
@@ -223,10 +230,191 @@ sub write_afm {
     $self;
 }
 
+# my $afmdata = ${$f->afm_as_string};
+sub afm_as_string {
+    my ($self) = @_;
+
+    # Read some tables.
+    my $head = $self->{head}->read;
+    my $hhea = $self->{'OS/2'}->read;
+    my $name = $self->{name}->read;
+    my $post = $self->{post}->read;
+
+    # Version. Try to normalize to nnn.nnn.
+    my $version = $self->_str(5);
+    $version = sprintf("%07.3f", $1) if $version =~ /(\d+\.\d+)/;
+
+    # Font bounding box.
+    my $scale = do {
+	my $u = $head->{unitsPerEm};
+	sub {int($_[0] * 1000 / $u)}
+    };
+    my @bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
+
+    # Glyph table.
+    my $glyphs = $self->glyphs;
+
+    # Start AFM information.
+    my $ret = "StartFontMetrics 4.1\n";
+
+    $ret .= "Comment Creator: " . __PACKAGE__ . " " . $VERSION .
+	    " by Johan Vromans\n" .
+	    "Comment Creation Date: " . localtime(time) . "\n" .
+            "FontName "   . $self->_str(6) . "\n" .
+            "FullName "   . $self->_str(4) . "\n" .
+	    "FamilyName " . $self->_str(1) . "\n" .
+	    "Weight "     . $self->_str(2) . "\n" .
+	    sprintf("ItalicAngle %s\n" .
+		    "IsFixedPitch %s\n" .
+		    "FontBBox %d %d %d %d\n" .
+		    "UnderlinePosition %d\n" .
+		    "UnderlineThickness %d\n",
+		    $post->{italicAngle},
+		    $post->{isFixedPitch} ? "true" : "false",
+		    @bb,
+		    $post->{underlinePosition},
+		    $post->{underlineThickness},
+		   ) .
+	    "Version $version\n" .
+	    "Notice "     . _psstr($self->_str(0)) . "\n" .
+	    "EncodingScheme AdobeStandardEncoding\n" .
+	    "Ascender " . $scale->($hhea->{sTypoAscender}) . "\n" .
+	    "Descender " . $scale->($hhea->{sTypoDescender}) . "\n";
+
+    #### Encoding.
+
+    # Build reverse encoding hash.
+    my %enc;
+    { require PostScript::StandardEncoding;
+      my $enc = PostScript::StandardEncoding::->array;
+      foreach my $i ( 0..scalar(@$enc)-1 ) {
+	$enc{$enc->[$i]} = $i;
+      }
+    }
+
+    #### Character Data
+
+    { my @metrics = ("") x 256;
+      my @xmetrics;
+      my $loca = $self->{loca}->read;
+      my $hmtx = $self->{hmtx}->read;
+      my $width = $hmtx->{advance};
+      my $space;
+      my $nbspace;
+      my $nglyphs = 0;
+
+      $loca->glyphs_do
+        ( sub { my ($glyph, $gix) = @_;
+	        $glyph->read_dat;
+		my $name = $glyphs->[$gix];
+		return if $name eq ".notdef";
+	        my $ix = $enc{$name};
+		$ix = -1 unless defined($ix);
+		my $ent = sprintf("C %d ; WX %d ; N %s ; B %d %d %d %d ;\n",
+				  $ix,
+				  $scale->($width->[$gix]),
+				  $name,
+				  map { $scale->($glyph->{$_}) }
+				  qw(xMin yMin xMax yMax));
+		if ( $ix >= 0 ) {
+		    $metrics[$ix] = $ent;
+		}
+		else {
+		    push(@xmetrics, $ent);
+		}
+		if ( $name eq "space" ) {
+		    $space = $ent;
+		}
+		elsif ( $name =~ /^(nb|nonbreaking)space$/ ) {
+		    $nbspace = $ent;
+		}
+		$nglyphs++;
+	    } );
+
+      # Add space and nbspace, if necessary;
+      my $wspace;
+      for ( qw(space nonbreakingspace) ) {
+	  next if $_ eq "space" && $space;
+	  next if $_ eq "nonbreakingspace" && $nbspace;
+
+	  unless ( defined($wspace) ) {
+	      my $spx = 0;
+	      foreach ( @$glyphs ) {
+		  last if $_ eq "space";
+		  $spx++;
+	      }
+	      $wspace = $scale->($width->[$spx]);
+	  }
+
+	  my $ix = $enc{$_};
+	  $ix = -1 unless defined($ix);
+	  my $ent = "C $ix ; WX $wspace ; N $_ ; B 0 0 0 0 ;\n";
+	  if ( $ix >= 0 ) {
+	      $metrics[$ix] = $ent;
+	  }
+	  else {
+	      push(@xmetrics, $ent);
+	  }
+	  $nglyphs++;
+      }
+
+      # Sort the unencoded glyphs.
+      @xmetrics = map { $_->[1] }
+	sort { $a->[0] cmp $b->[0] }
+	  map { [ (split(' ', $_))[7], $_ ] } @xmetrics;
+
+      $ret .= "StartCharMetrics $nglyphs\n" .
+	join("", @metrics, @xmetrics);
+    }
+
+    $ret .= "EndCharMetrics\n\n";
+
+    #### Kerning Data
+
+    $ret .= "StartKernData\n";
+    ### $ret .= "StartTrackKern\n";
+    ### $ret .= "EndTrackKern\n";
+
+    my $kern = $self->{kern}->read;
+    my $nkern = 0;
+
+    # Gather the contents of all the kern tables in a single hash.
+    my %k;
+    foreach my $table ( @{$kern->{tables}} ) {
+	my $kerns = $table->{kern};
+	foreach my $left ( keys %$kerns ) {
+	    foreach my $right ( keys %{$kerns->{$left}} ) {
+		$k{$glyphs->[$left]}{$glyphs->[$right]} =
+		  $kerns->{$left}{$right};
+		$nkern++;
+	    }
+	}
+    }
+
+    # Now print the hash, sorted.
+    $ret .= "StartKernPairs $nkern\n";
+    foreach my $left ( sort keys %k ) {
+	foreach my $right ( sort keys %{$k{$left}} ) {
+	    $ret .= "KPX $left $right " . $k{$left}{$right} . "\n";
+	}
+	$ret .= "\n";
+    }
+    $ret .= "EndKernPairs\n";
+    $ret .= "EndKernData\n";
+
+    ### $ret .= "StartComposites\n";
+    ### $ret .= "EndComposites\n";
+
+    $ret .= "EndFontMetrics\n";
+
+    \$ret;
+}
+
 ################ Internal routines ################
 
+# Create the directory header for the sfnts strings.
 sub _dirhdr {
-    my $tables = shift;
+    my ($tables) = @_;
     my $searchrange = 1;
     my $entryselector = 0;
 
@@ -245,11 +433,16 @@ sub _dirhdr {
 	    $rangeshift    >> 8, $rangeshift    & 0xff);
 }
 
+# Fetch a PostScript string.
 sub _str {
     my ($self, $idx) = @_;
+    # [1] platform = 1 (Apple Unicode)
+    # [0] encoding = 0 (default)
+    # {0} language = 0 (default, English)
     $self->{name}{strings}[$idx][1][0]{0} || "";
 }
 
+# Generate the define code for a string, if it exists.
 sub _addstr {
     my ($self, $ret, $tag, $idx, $name) = @_;
     my $t = $self->_str($idx);
@@ -263,6 +456,7 @@ sub _addstr {
     }
 }
 
+# Escape PostScript characters.
 sub _psstr {
     my ($str) = @_;
     $str =~ s/([\\()])/\\$1/g;
@@ -270,12 +464,14 @@ sub _psstr {
     $str;
 }
 
+# Generate the define code for a number, if it exists.
 sub _addnum {
     my ($self, $ret, $tag, $val) = @_;
     return unless defined $val;
     $$ret .= "/$tag $val def\n";
 }
 
+# Generate the define code for a boolean, if it exists.
 sub _addbool {
     my ($self, $ret, $tag, $val) = @_;
     return unless defined $val;
@@ -283,12 +479,15 @@ sub _addbool {
       ( $val ? "true" : "false" ) . " def\n";
 }
 
+# Get the list of glyphs.
 sub _getglyphs {
     my $self = shift;
     $self->{post}->read;
     $self->{glyphs} = $self->{post}{VAL};
 }
 
+# Generate the sfnts strings for the glyph table, splitting it on glyph
+# boundaries.
 sub _glyftbl {
     my ($self, $rd, $rt, $ship, $fd, $glyf_off, $glyf_len, $loca_off, $loca_len) = @_;
 
@@ -329,6 +528,7 @@ sub _glyftbl {
 		   length($$rd), $$rt) if DEBUG;
 }
 
+# Fetch (read) a complete table.
 sub _read_tbl {
     my ($fd, $off, $len) = @_;
     sysseek($fd, $off, 0);
@@ -394,6 +594,7 @@ font, sorted alphabetically.
 =head1 KNOWN BUGS
 
 Certain TrueType fonts cause problems.
+If you find one, let me know.
 
 CID fonts are not yet supported.
 
