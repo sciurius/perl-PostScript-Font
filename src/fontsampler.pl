@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : Tue Sep 15 15:59:04 1992
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Dec 17 09:01:45 1998
-# Update Count    : 41
+# Last Modified On: Thu Dec 17 13:29:12 1998
+# Update Count    : 78
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -39,64 +39,85 @@ my $lastfam = '';
 my $date = localtime(time);
 my @todo = ();
 
-&preamble0;
-while ( <> ) {
-    print if $include;
-    next if /^%/;
-    push (@todo, [ $ARGV, $1 ]) if m|/FontName +/(\S+)|;
-    # &add_sample ($ARGV, $1) if m|/FontName +/(\S+)|;
-}
-&preamble1;
-my $todo;
-foreach $todo ( @todo ) {
-    add_sample (@$todo);
+&preamble;
+my $file;
+foreach $file ( @ARGV ) {
+
+    if ( $samples >= 38 ) {
+	print ("showpage\n") if $page;
+	$page++;
+	print ("%%Page: $page $page\n");
+	print ("($date) (Page $page) Header\n");
+	$samples = 0;
+    }
+
+    my $fn = $file;
+    if ( $file =~ /\.pfb$/i ) {
+	unless ( $include ) {
+	    warn ("$file: skipped (use -include)\n");
+	    next;
+	}
+	$file = "t1ascii < $file 2>/dev/null |";
+    }
+    open (FONT, $file) || die ("$file: $!\n");
+    my $name;
+    my $fam;
+    print "save\n";
+    while ( <FONT> ) {
+	print if $include;
+	next if /^%/;
+	if ( m|/FontName +/(\S+)| ) {
+	    $name = $fam = $1;
+	    $fam = $` if $fam =~ /-/;
+	    $lastfam = $fam if $samples == 0;
+	    last unless $include;
+	}
+    }
+    close (FONT);
+
+#    unless ( defined $name ) {
+#	$name = $fn;
+#	$name =~ s/\..+$//;
+#	$name =~ m|([^/]+)$|;
+#	$name = $fam = $1;
+#	$fam = $` if $fam =~ /-/;
+#	$lastfam = $fam if $samples == 0;
+#	warn ("$file: Missing FontName, assuming $name\n");
+#    }
+
+    if ( defined $name ) {
+
+	if ( $fam ne $lastfam ) {
+	    $lastfam = $fam;
+	    if ( $lastfam and $page > 0 ) {
+		$samples++;
+	    }
+	}
+
+	if ( $load ) {
+	    print ("($file) run\n");
+	}
+	print ("/$name ", 800-($samples*20), " Sample\n");
+	$samples++;
+    }
+    else {
+	warn ("$fn: Missing FontName\n");
+    }
+    print ("restore\n");
 }
 &wrapup;
 exit 0;
 
 ################ Subroutines ################
 
-sub preamble0 {
-    while ( <DATA> ) {
-	print;
-	last if /^%%EndProcSet/;
-    }
-}
-
-sub preamble1 {
+sub preamble {
     print while <DATA>;
     $page = 0;
     $samples = 999;
 }
 
-sub add_sample {
-    my $file = shift;
-    my $name = shift;
-    my $fam = $name;
-    $fam = $` if $fam =~ /-/;
-    if ( $fam ne $lastfam ) {
-	$lastfam = $fam;
-	if ( $lastfam and $page > 0 ) {
-	    print ("Space\n");
-	    $samples++;
-	}
-    }
-
-    if ( $samples >= 38 ) {
-	print ("Eject\n") if $page;
-	$page++;
-	print ("%%Page: $page $page\n");
-	print ("($date) (Page $page) Header\n");
-	$samples = 0;
-	$lastfam = $fam;
-    }
-    print ("($file) run\n") if $load && !$include;
-    print ("/$name Sample\n");
-    $samples++;
-}
-
 sub wrapup {
-    print ("Eject\n") if $samples;
+    print ("showpage\n") if $samples;
     print ("%%Pages: $page\n");
     print ("%%EOF\n");
 }
@@ -145,24 +166,17 @@ __END__
 %%EndComments
 %%BeginProcSet: procs 0 0
 /Sample {
-  /FName exch def	% font name
-  /F FName findfont def
-  /F14 F 14 scalefont def
+  /y exch def
+  dup /FName exch def
+  findfont 14 scalefont /F14 exch def
   x y moveto
   T setfont FName Temp cvs show
-  x 150 add y moveto
+  x 160 add y moveto
   F14 setfont (ABCDEFGHIJKL abcdefghijklm 0123456789) show
-  /y y 20 sub def
-} def
-/Space {
-  /y y 20 sub def
-} def
-/Eject {
-  showpage
-  /y y0 def
 } def
 /Header {
-  exch pop x 450 add y 20 add moveto T setfont show
+  x 500 add y0 20 add moveto T setfont dup stringwidth pop neg 0 rmoveto show
+  x 500 add 20        moveto T setfont dup stringwidth pop neg 0 rmoveto show
 } def
 %%EndProcSet
 %%EndProlog
@@ -171,5 +185,4 @@ __END__
 /Temp 64 string def
 /x 50 def
 /y0  800 def
-/y y0 def
 %%EndSetup
