@@ -1,8 +1,8 @@
 # RCS Status      : $Id$# Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu May 13 18:49:53 1999
-# Update Count    : 120
+# Last Modified On: Fri May 14 00:06:04 1999
+# Update Count    : 169
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -20,33 +20,117 @@ use File::Spec;
 use vars qw($VERSION);
 $VERSION = "1.0";
 
+my $ResourcePath = ".";		# default standard resource path
+my $defupr = "PSref.upr";	# principal resource file
+my $fn;				# file currently being loaded
+my $fh;				# handle of file currently being loaded
+my $section;			# section currently being loaded
+my $exclusive;			# last loaded file was exclusive
+my $rscidx;			# current resource index
+
 my $trace;
+my $debug;
 my $verbose;
 my $error;
 
-my @sections;
-
 sub new {
     my $class = shift;
-    my $upr = shift;
-    my (%atts) = (error => 'die',	# 'die', 'warn' or 'ignore'
-		  strategy => 'memory',	# 'memory' or 'demand'
+    my (%atts) = (path    => $ENV{"PSRESOURCEPATH"} || "::",
+		  stdpath => $ResourcePath,
+		  error   => 'die',	# 'die', 'warn' or 'ignore'
 		  verbose => 0,
-		  trace => 0,
+		  trace   => 0,
+		  debug   => 1,
 		  @_);
-    my $self = { file => $upr };
+
+    $debug   =           lc($atts{debug});
+    $trace   = $debug || lc($atts{trace});
+    $verbose = $trace || lc($atts{verbose});
+    $error   = lc($atts{error});
+
+    my $self = {};
     bless $self, $class;
 
-    $trace = lc($atts{trace});
-    $verbose = $trace || lc($atts{verbose});
-    $error = lc($atts{error});
-    $self->{prefix} = dirname ($upr);
+    # Get the resource paths.
+    my $path = $atts{path};
+    $path =~ s|::|:$atts{stdpath}:|g;
+    $path =~ s|^:||;
 
-    eval { $self->_loadInfo };
-    if ( $@ ) {
-	die ($@)  unless $error eq "warn";
-	warn ($@) unless $error eq "ignore";
-	return undef;
+    # According to the specs, the file names are either literal,
+    # absolute or relative. In the latter case, the current prefix
+    # (which defaults to the directory of the .upr file) must be
+    # appended.
+    # To avoid lots of unnecessary file name parsing, each prefix
+    # will be stored in a prefix array, and the index in this array
+    # will be prepended to each file name entry.
+    # The costly filename manipulation will only be done when a
+    # filename needs to be returned (sub _buildfilename).
+
+    # Create the prefix array and reset the index.
+    $self->{prefix} = [];
+    $rscidx = 0;
+
+    # Process the entries in the list.
+    foreach my $rsc ( split (":", $path) ) {
+
+	print STDERR ("rsc#$rscidx: $rsc <file>\n") if $debug;
+
+	if ( -d $rsc ) {
+	    print STDERR ("rsc#$rscidx: $rsc <dir>\n") if $debug;
+
+	    # Directory.
+	    $exclusive = 0;
+
+	    # First check for a PSres.upr, and load it if possible.
+	    $fn = File::Spec->catfile ($rsc, "PSres.upr");
+	    if ( -f $fn ) {
+		print STDERR ("rsc#$rscidx: load $fn\n") if $debug;
+		$rscidx++;
+		eval { _loadFile ($self) };
+		if ( $@ ) {
+		    die ($@)  if $error eq "die";
+		    warn ($@) if $error eq "warn";
+		    next;
+		}
+	    }
+
+	    # Unless PSres.upr was an exclusive resource, load all
+	    # files with .upr extension.
+	    unless ( $exclusive ) {
+		my $dh = do { local *DH };
+		opendir ($dh, $rsc);
+		my @files = grep (/\.upr$/, readdir ($dh));
+		closedir ($dh);
+		foreach my $file ( @files ) {
+		    # Skip the PSres.upr. It is already loaded.
+		    next if $file eq "PSres.upr";
+
+		    $fn = File::Spec->catfile ($rsc, $file);
+		    print STDERR ("rsc#$rscidx: load $fn\n") if $debug;
+		    $rscidx++;
+		    eval { _loadFile ($self) };
+		    if ( $@ ) {
+			die ($@)  if $error eq "die";
+			warn ($@) if $error eq "warn";
+			next;
+		    }
+		}
+	    }
+	}
+	else {
+
+	    # File. This is _not_ defined in the specs.
+
+	    $fn = $rsc;
+	    print STDERR ("rsc#$rscidx: load $fn\n") if $debug;
+	    $rscidx++;
+	    eval { _loadFile ($self) };
+	    if ( $@ ) {
+		die ($@)  if $error eq "die";
+		warn ($@) if $error eq "warn";
+		next;
+	    }
+	}
     }
 
     $self;
@@ -55,35 +139,42 @@ sub new {
 sub FontAFM ($$) {
     my ($self, $font) = @_;
     return undef unless defined ($font = $self->{FontAFM}->{$font});
-    _buildfilename ($self->{prefix}, $font);
+    _buildfilename ($self, $font)
 }
 
 sub FontOutline ($$) {
     my ($self, $font) = @_;
-    return undef unless defined ($font = $self->{FontOutline}->{$font});
-    _buildfilename ($self->{prefix}, $font);
+    _buildfilename ($self, $font);
 }
 
-sub _loadInfo ($) {
+sub _buildfilename ($$) {
+    my ($self, $name) = @_;
+    my $i;
+    ($i, $name) = unpack ("IA*", $name);
+    return $1 if $name =~ /^=(.*)$/;
+    return $name if File::Spec->file_name_is_absolute ($name);
+    File::Spec->canonpath (File::Spec->catfile ($self->{prefix}->[$i], $name));
+}
 
-    my ($self) = shift;
+sub _loadFile ($) {
+
+    my ($self) = @_;
 
     my $data;			# data
 
     eval {			# so we can use die
 
-	my $fn = $self->{file};
-	my $fh = new IO::File;	# font file
+	$fh = new IO::File;	# font file
 	my $sz = -s $fn;	# file size
 
 	$fh->open ($fn) || die ("$fn: $!\n");
-	print STDERR ($fn, ": Loading Resources file\n") if $verbose;
+	print STDERR ($fn, ": Loading Resources\n") if $verbose;
 
 	# Read in the data.
 	my $line = <$fh>;
 	die ($fn."[$.]: Unrecognized file format\n")
 	  unless $line =~ /^PS-Resources-(Exclusive-)?([\d.]+)/;
-	my $exclusive = defined $1;
+	$exclusive = defined $1;
 	my $version = $2;
 
 	# The resources file is organised in sections, each starting
@@ -129,12 +220,11 @@ sub _loadInfo ($) {
 
 	# Then, load the sections from the file, skipping unknown ones.
 
-	my $section;
 	my $checkdir = 1;
 	while ( defined ($section = _readLine ($self, $fh)) ) {
 	    chomp ($section);
 	    if ( $checkdir && $section =~ /^\/(.*)/ ) {
-		$self->{prefix} = $1;
+		$self->{prefix}->[$rscidx] = $1;
 		$checkdir = 0;
 		next;
 	    }
@@ -143,18 +233,21 @@ sub _loadInfo ($) {
 	      "_skipSection";
 	    no strict 'refs';
 	    die ($fn."[$.]: Premature end of $section section\n")
-	      if $fh->eof || !$loader->($self, $fh, $section);
+	      if $fh->eof || !$loader->($self);
 	}
-	$fh->close;
 
     };
+
+    # Set the dfeault value for the directory prefix, if necessary.
+    $self->{prefix}->[$rscidx] ||= dirname ($fn);
+
+    $fh->close;
     die ($@) if $@;
     $self;
 }
 
-sub _readLine ($$) {
+sub _readLine () {
     # Read a line, handling continuation lines.
-    my ($self, $fh) = @_;
     my $line;
     while ( 1 ) {
 	return undef if $fh->eof;
@@ -172,95 +265,88 @@ sub _readLine ($$) {
     undef;
 }
 
-sub _loadFontAFM ($$$) {
-    my ($self, $fh, $name) = @_;
-    print STDERR ($self->{file}, "[$.]: Loading section $name\n")
-      if $trace;
+sub _loadFontAFM ($) {
+    my ($self) = @_;
+    print STDERR ($fn, "[$.]: Loading section $section\n") if $trace;
 
-    my %afm = ();
-    $self->{FontAFM} = \%afm;
+    my $afm;
+    $afm = $self->{FontAFM} = {}
+      unless defined ($afm = $self->{FontAFM});
 
     my $line;
-    while ( defined ($line = _readLine ($self, $fh)) ) {
+    my $rscidx = pack ("I", $rscidx);
+    while ( defined ($line = _readLine ()) ) {
 	return 1 if $line =~ /^\.$/;
 
 	# PostScriptName=the/file.afm
 	if ( $line =~ /^([^=]+)=(.*)$/ ) {
-	    $afm{$1} = $2;
+	    $afm->{$1} = $rscidx.$2;
 	    next;
 	}
-	warn ($self->{file}, "[$.]: Invalid FontAFM entry\n")
+	warn ($fn, "[$.]: Invalid FontAFM entry\n")
 	  unless $error eq "ignore";
     }
     return 1;
 }
 
-sub _loadFontFamily ($$$) {
-    my ($self, $fh, $name) = @_;
-    print STDERR ($self->{file}, "[$.]: Loading section $name\n")
-      if $trace;
+sub x_loadFontFamily ($) {
+    my ($self) = @_;
+    print STDERR ($fn, "[$.]: Loading section $section\n") if $trace;
 
-    my %fam = ();
-    $self->{FontFamily} = \%fam;
+    my $fam;
+    $fam = $self->{FontFamily} = {}
+      unless defined ($fam = $self->{FontFamily});
 
     my $line;
-    while ( defined ($line = _readLine ($self, $fh)) ) {
+    while ( defined ($line = _readLine ()) ) {
 	return 1 if $line =~ /^\.$/;
 
 	# Familiyname=Type1,PostScriptName1,Type2,PostScriptName2,...
 	if ( $line =~ /^([^=]+)==?(.*)$/ ) {
-	    $fam{$1} = { split (',', $2) };
+	    $fam->{$1} = { split (',', $2) };
 	    next;
 	}
-	warn ($self->{file}, "[$.]: Invalid FontFamily entry\n")
+	warn ($fn, "[$.]: Invalid FontFamily entry\n")
 	  unless $error eq "ignore";
     }
     return 1;
 }
 
-sub _loadFontOutline ($$$) {
-    my ($self, $fh, $name) = @_;
-    print STDERR ($self->{file}, "[$.]: Loading section $name\n")
-      if $trace;
+sub _loadFontOutline ($) {
+    my ($self) = @_;
+    print STDERR ($fn, "[$.]: Loading section $section\n") if $trace;
 
-    my %pfa = ();
-    $self->{FontOutline} = \%pfa;
+    my $pfa;
+    $pfa = $self->{FontOutline} = {}
+      unless defined ($pfa = $self->{FontOutline});
 
     my $line;
-    while ( defined ($line = _readLine ($self, $fh)) ) {
+    my $rscidx = pack ("I", $rscidx);
+    while ( defined ($line = _readLine ()) ) {
 	return 1 if $line =~ /^\.$/;
 
 	# PostScriptName=the/file.pfa
 	if ( $line =~ /^([^=]+)=(.*)$/ ) {
-	    $pfa{$1} = $2;
+	    $pfa->{$1} = $rscidx.$2;
 	    next;
 	}
-	warn ($self->{file}, "[$.]: Invalid FontOutline entry\n")
+	warn ($fn, "[$.]: Invalid FontOutline entry\n")
 	  unless $error eq "ignore";
     }
     return 1;
 }
 
-sub _skipSection ($$$) {
-    my ($self, $fh, $name) = (@_, 'list');
-    print STDERR ($self->{file}, "[$.]: Skipping section $name\n")
-      if $trace;
+sub _skipSection ($) {
+    my ($self) = (@_);
+    $section ||= "list";
+    print STDERR ($fn, "[$.]: Skipping section $section\n") if $trace;
 
     my $line;
-    while ( defined ($line = _readLine ($self, $fh)) ) {
+    while ( defined ($line = _readLine ()) ) {
 	return 1 if $line =~ /^\.$/;
     }
     return 1;
 }
-
-sub _buildfilename ($$) {
-    my ($prefix, $name) = @_;
-    return $1 if $name =~ /^=(.*)$/;
-    return $name if File::Spec->file_name_is_absolute ($name);
-    File::Spec->canonpath (File::Spec->catfile ($prefix, $name));
-}
-
-sub 
 
 1;
 
@@ -270,16 +356,61 @@ __END__
 
 =head1 NAME
 
-PostScript::FontResource - module to fetch data from Unix PostScript Resource C<.upr> files
+PostScript::FontResources - module to fetch data from Unix PostScript Resource 'C<.upr>' files
 
 =head1 SYNOPSIS
 
-  my $rsc = new PostScript::FontResources (filename, options);
+  my $rsc = new PostScript::FontResources (options);
   print STDOUT $rsc->FontAFM ("Times-Roman"), "\n";
 
-=head1 OPTIONS
+=head1 DESCRIPTION
+
+This package allows Unix font resource files, so called 'C<.upr>'
+files, to be read and parsed.
+
+=head1 CONSTRUCTOR
 
 =over 4
+
+=item new ( OPTIONS )
+
+The constructor will initialise the PostScript resource context
+by loading all resource files.
+
+=back
+
+The following options can be passed to the constructor:
+
+=over 4
+
+=item path => I<path>
+
+I<path> is a colon-separated list of locations where resource files
+are kept. It defaults to the value of the environment variable
+C<PSRESOURCEPATH>, which defaults to 'C<::>'.
+
+Two adjacent colons in the path represent the list of default places
+in which a component looks for resources. This is also the default
+value for users who have not installed private resources. Users with
+private resources should end the path with a double colon if they want
+their resources to override the system defaults, or begin it with a
+double colon if they don't want to override system defaults.
+
+On Unix systems, resource files end with the suffix 'C<.upr>' (for
+Unix PostScript resources). The principal resource file in a directory
+is named 'C<PSres.upr>'.
+
+If the first line of a principal resource file is
+'C<PS-Resources-Exclusive-1.0>', only this file will be loaded and
+processing continues with the next entry from the path.
+
+If, however, the first line of the principal resource file is
+'C<PS-Resources-1.0>', or if there is no such file, all files in the
+directory with the suffix 'C<.upr>' will be loaded.
+
+=item stdpath => I<path>
+
+The standard locations for resource files.
 
 =item error => [ 'die' | 'warn' | 'ignore' ]
 
@@ -288,18 +419,6 @@ How errors must be handled.
 Invalid entries in the file are always reported unless the error
 handling strategy is set to 'ignore'.
 
-=item strategy => [ 'memory' | 'demand' ]
-
-Strategy 'memory' causes all info to be loaded in memory structures.
-This is suitable for small files or if several lookups are done on the
-same file.
-
-Strategy 'demand' costs less memory, but requires the file to be
-re-parsed for every lookup request. This is suitable for large files
-with few lookups.
-
-Currently, only the 'memory' strategy is implemented.
-
 =item verbose => I<value>
 
 Prints verbose info if I<value> is true.
@@ -307,21 +426,12 @@ Prints verbose info if I<value> is true.
 =item trace => I<value>
 
 Prints tracing info if I<value> is true.
+trace' and 'Implies 'verbose'.
 
-=back
+=item debug => I<value>
 
-=head1 DESCRIPTION
-
-This package allows Unix font resource files, so called C<.upr> files,
-to be read and parsed.
-
-=head1 CONSTRUCTOR
-
-=over 4
-
-=item new ( FILENAME )
-
-The constructor will read the file and parse its contents.
+Prints debugging info if I<value> is true.
+Implies 'trace' and 'verbose'.
 
 =back
 
@@ -342,15 +452,35 @@ The name of the PostScript Font program for the named font.
 
 =back
 
+=head1 ENVIRONMENT VARIABLES
+
+=over 4
+
+=item PSRESOURCEPATH
+
+The list of directories where resource files are kept. Semantics are
+as defined in appendix A of I<Display PostScript Toolkit for X>, Adobe
+Technical Note C<DPS.refmanuals.TK.pdf>.
+
+=back
+
 =head1 KNOWN BUGS AND LIMITATIONS
 
-Only FontAFM and FontOutline resources are implemented.
+Only FontAFM and FontOutline resources are implemented. All other resource sections are ignored.
+
+All info is loaded in memory structures. This is okay for small
+files or if several lookups are done on the same file.
 
 Backslash escape processing is not yet implemented, except for the
 handling of line continuation.
 
 This module is intended to be used on Unix systems only.
 Your mileage on other platforms may vary.
+
+=head1 SEE ALSO
+
+Appendix A of I<Display PostScript Toolkit for X>, Adobe Technical
+Note C<DPS.refmanuals.TK.pdf>.
 
 =head1 AUTHOR
 
