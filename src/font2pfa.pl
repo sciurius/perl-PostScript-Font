@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : January 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Feb  7 15:47:04 1999
-# Update Count    : 18
+# Last Modified On: Mon Feb  8 20:24:10 1999
+# Update Count    : 19
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -28,8 +28,6 @@ options ();
 
 ################ Presets ################
 
-use FindBin;
-use lib $FindBin::Bin;
 use PostScript::Font;
 
 my $TMPDIR = $ENV{'TMPDIR'} || '/usr/tmp';

@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Feb  7 15:47:50 1999
-# Update Count    : 357
+# Last Modified On: Mon Feb  8 20:23:37 1999
+# Update Count    : 358
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -38,8 +38,6 @@ $title = ps_str ($title);
 
 ################ Presets ################
 
-use FindBin;
-use lib $FindBin::Bin;
 use PostScript::Font;
 
 if ( $details && !defined $PostScript::Font::t1disasm ) {
