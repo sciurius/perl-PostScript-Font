@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : Tue Sep 15 15:59:04 1992
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Dec 18 09:32:15 1998
-# Update Count    : 92
+# Last Modified On: Mon Dec 28 14:07:40 1998
+# Update Count    : 101
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -24,6 +24,7 @@ use Getopt::Long 2.00;
 my $include = 0;
 my $load = 0;
 my $verbose = 0;
+my $title = "";
 my ($debug, $trace, $test) = (0, 0, 0);
 &options;
 
@@ -45,6 +46,7 @@ my $file;
 # Uncomment one of these lines for the .pfb to .pfa conversion.
 #my $t1ascii = "t1ascii >/dev/null <";	# t1utils
 my $t1ascii = "pfbtops ";		# groff
+$title = ps_str ($title) if $title ne "";
 
 foreach $file ( @ARGV ) {
 
@@ -52,7 +54,7 @@ foreach $file ( @ARGV ) {
 	print ("showpage\n") if $page;
 	$page++;
 	print ("%%Page: $page $page\n");
-	print ("($date) (Page $page) Header\n");
+	print ("($date) $title (Page $page) Header\n");
 	$samples = 0;
     }
 
@@ -128,6 +130,51 @@ sub wrapup {
     print ("%%EOF\n");
 }
 
+sub ps_str ($) {
+    # Form a string suitable for PostScript. Internal coding is ISO.
+
+    my ($line) = @_;
+    my $res = '';
+
+    # Handle ISO chars and quotes.
+    while ( $line =~ /^(.*?)([\200-\377"'()])(.*)$/s ) {      #'"]/{
+	$res .= $1;		# `; # before
+	my $chr = $2;		# the match
+	$line = $3;		# '; # after
+
+	# Quotes
+	if ( $chr eq '"' ) {
+	    $res .= ($res eq '' || $res =~ /\s$/) ? "\\204" : "\\202";
+	}
+	elsif ( $chr eq "'" ) {
+	    if ( $line =~ /^(s-|s\s|t\s)/ ) { # 's-Gravenhage, 't, 's nachts
+		$res .= "'";
+	    }
+	    else {
+		$res .= ($res eq '' || $res =~ /\s$/) ? "`" : "'";
+	    }
+	}
+	# Pseudo-quotes
+	elsif ( $chr eq "\336" ) {
+	    $res .= '\\207';
+	}
+	elsif ( $chr eq "\320" ) {
+	    $res .= "\\206";
+	}
+	# Parenthesis and others
+        elsif ( $chr eq '(' || $chr eq ')' || $chr eq '\\' ) {
+	    $res .= '\\' . $chr;
+	}
+	# Normal ISO
+	else {
+	    $res .= sprintf("\\%03o", ord($chr));
+	}
+    }
+
+    '(' . $res . $line . ')';      		   # return
+
+}
+
 sub options {
     my $help = 0;		# handled locally
     my $ident = 0;		# handled locally
@@ -139,6 +186,7 @@ sub options {
 				'verbose' => \$verbose,
 				'include!' => \$include,
 				'load!' => \$load,
+				'title=s' => \$title,
 				'trace' => \$trace,
 				'help' => \$help,
 				'debug' => \$debug)
@@ -154,6 +202,7 @@ sub usage {
     print STDERR <<EndOfUsage;
 This is $my_package [$my_name $my_version]
 Usage: $0 [options] [.pfa file ...]
+    -title XXX		optional page title
     -[no]include	do [not] include font files
     -[no]load		do [not] load the fonts from disk
     -help		this message
@@ -173,6 +222,7 @@ fontsampler - make sample pages from PostScript fonts
 fontsampler [options] [PostScript font files ...]
 
  Options:
+   -title XXX		optional page title
    -[no]include         do [not] include font files
    -[no]load            do [not] load the fonts from disk
    -ident		show identification
@@ -214,6 +264,10 @@ PostScript document is processed. This only works if your PostScript
 rendering engine runs on the local machine, and has access to the
 files on disk (e.g. B<Ghostscript>, B<Ghostview>). To print the
 document on a PostScript printer, use the B<-include> option.
+
+=item B<-title> I<XXX>
+
+Optional title to be printed on every page.
 
 =item B<-help>
 
@@ -260,6 +314,7 @@ __END__
 } def
 /Header {
   x 500 add y0 20 add moveto T setfont dup stringwidth pop neg 0 rmoveto show
+  x  50 add y0 20 add moveto T setfont show
   x 500 add 20        moveto T setfont dup stringwidth pop neg 0 rmoveto show
 } def
 %%EndProcSet
