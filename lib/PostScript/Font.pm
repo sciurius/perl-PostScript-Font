@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 18:35:04 1999
-# Update Count    : 355
+# Last Modified On: Tue Oct 19 21:32:58 1999
+# Update Count    : 356
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -18,7 +18,7 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.00_01";
+$VERSION = "1.00_02";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.

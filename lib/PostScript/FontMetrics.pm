@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 18:35:10 1999
-# Update Count    : 407
+# Last Modified On: Tue Oct 19 21:33:08 1999
+# Update Count    : 408
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,7 +19,7 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.00_01";
+$VERSION = "1.00_02";
 
 # The ttftot42 program is used to extract metrics from True Type fonts.
 use vars qw($ttftot42);
