@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Sat Dec 21 11:48:19 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Dec 21 11:58:58 2002
-# Update Count    : 10
+# Last Modified On: Tue Dec 24 00:11:33 2002
+# Update Count    : 16
 # Status          : Released
 
 ################ Module Preamble ################
@@ -32,7 +32,7 @@ my $ISOLatin9Encoding_str =
   ".notdef .notdef .notdef .notdef .notdef dotlessi grave acute ".
   "circumflex tilde macron breve dotaccent dieresis .notdef ring ".
   "cedilla .notdef hungarumlaut ogonek caron space exclamdown cent ".
-  "sterling euro yen Scaron section scaron copyright ".
+  "sterling Euro yen Scaron section scaron copyright ".
   "ordfeminine guillemotleft logicalnot hyphen registered macron degree ".
   "plusminus twosuperior threesuperior Zcaron mu paragraph ".
   "periodcentered zcaron onesuperior ordmasculine guillemotright ".
@@ -58,6 +58,24 @@ sub array {
     @ISOLatin9Encoding = split(' ', $ISOLatin9Encoding_str)
       unless @ISOLatin9Encoding;
     wantarray ? @ISOLatin9Encoding : \@ISOLatin9Encoding;
+}
+
+sub ps_vector {
+    my ($self) = @_;
+    array();			# will fill @ISOLatin9Encoding
+    my $tally = 0;
+    my $ret = "/ISOLatin9Encoding [\n";
+
+    foreach my $sym ( @ISOLatin9Encoding ) {
+	if ( $tally + length($sym) + 2 > 72 ) {
+	    $ret .= "\n";
+	    $tally = 0;
+	}
+	$ret .= " /$sym";
+	$tally += length($sym) + 2;
+    }
+
+    $ret . "\n] def\n";
 }
 
 1;
