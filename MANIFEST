@@ -9,3 +9,8 @@ lib/PostScript/Resources.pm
 script/fontsampler
 script/font2pfa
 script/font2pfb
+examples/example.pl
+examples/charter.upr
+examples/char0010.afm
+examples/char0010.pfb
+
