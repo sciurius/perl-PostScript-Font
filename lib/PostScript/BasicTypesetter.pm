@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Jul  1 13:57:43 2000
-# Update Count    : 480
+# Last Modified On: Sun Jul  2 12:14:40 2000
+# Update Count    : 511
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -313,6 +313,36 @@ sub lineskip {
     $self->{lineskip};
 }
 
+=head2 color
+
+Example:
+
+    $ts->color([1,0,0]);   # RGB vector
+    $color = $ts->color;
+
+Sets or gets the current color. The argument must be either a
+3-element vector for RGB color coordinates, or an 4-element vector for
+CMYK coordinates. In either case, each of the coordinates must be a number
+between 0 and 1, inclusive.
+
+IMPORTANT: There's no such thing as a default color. Typesetters that
+do not have a color set will print in the current color. Use
+C<ps_setcolor>, described below, to explicitly control the color of
+the output.
+
+=cut
+
+sub color {
+    my ($self, $color) = @_;
+    if ( $color ) {
+	croak ("color: Color must be a 3 or 4 element vector")
+	  unless ref($color) && UNIVERSAL::isa($color,"ARRAY")
+	    && (@$color == 3 || @$color == 4);
+    }
+    $self->{color} = $color if $color;
+    $self->{color};
+}
+
 =head2 stringwidth
 
 Example:
@@ -579,14 +609,16 @@ Example:
 
     print $ts->ps_setfont;
 
-Produces the PostScript code to designate the current font and size
-for PostScript.
+Produces the PostScript code to designate the current font, size and
+color for PostScript.
 
 This method keeps track of the settings, and will not produce
 anything if the current settings are already as requested. Hence use
 liberally.
 
-Call with an explicit C<undef> argument to flush the cache.
+Call with an explicit C<undef> argument to flush the cache. This is
+only necessary when the PostScript code needs to maintain graphics
+state explicitly.
 
 =cut
 
@@ -600,11 +632,68 @@ sub ps_setfont {
     croak ("ps_setfont: Font size not set") unless $size;
     if ( @_ && !defined shift ) {
 	undef $ps_curfont;
+	$self->ps_setcolor (undef);
+	return $ret;
     }
     unless ( $ps_curfont && $ps_curfont eq "$size $self->fontname" ) {
 	$ret .= sprintf ("/%s findfont %.3g scalefont setfont\n",
 			 $self->fontname, $size);
 	$ps_curfont = "$size $self->fontname";
+    }
+    $ret .= $self->ps_setcolor ($self->{color})
+      if $self->{color};
+
+    $ret;
+}
+
+=head2 ps_setcolor
+
+Example:
+
+    print $ts->ps_setcolor([0,0,0]);
+
+Produces the PostScript code to set the current PostScript color.
+If no arguments are passed, it sets the value for this typesetter.
+
+This method keeps track of the settings, and will not produce
+anything if the current settings are already as requested. Hence use
+liberally.
+
+Call with an explicit C<undef> argument to flush the cache. This is
+only necessary when the PostScript code needs to maintain graphics
+state explicitly.
+
+=cut
+
+my $ps_curcol;
+
+sub ps_setcolor {
+    my $self = shift;
+    my $color = $self->{color};
+    my $ret = '';
+    if ( @_ ) {
+	$color = shift;
+	if ( defined $color ) {
+	    croak ("color: Color must be a 3 or 4 element vector")
+	      unless ref($color) && UNIVERSAL::isa($color,"ARRAY")
+		&& (@$color == 3 || @$color == 4);
+	}
+	else {
+	    undef $ps_curcol;
+	    return $ret;
+	}
+    }
+    return $ret unless $color;
+    unless ( $ps_curcol
+	     && join(" ",@$ps_curcol) eq join(" ",$color) ) {
+	$ps_curcol = $color;
+	if ( @$color == 3 ) {
+	    $ret .= sprintf ("%.3f %.3f %.3f setrgbcolor\n", @$color);
+	}
+	else {
+	    $ret .= sprintf ("%.3f %.3f %.3f %.3f setcmykcolor\n",
+			     @$color);
+	}
     }
     $ret;
 }
@@ -659,6 +748,9 @@ The string will be printed starting at base postion C<$x> and C<$y>.
 If the string exceeds the width C<$w> a line wrap will occur.
 The first line will be indented with C<$xi>.
 
+C<ps_textbox> will take care of font changes and color settings, but
+will not affect the global settings.
+
 If C<$str> is a reference to an array, this array may contain a mix of
 strings, PostScript::BasicTypesetter objects, and array references
 (recursive). Each string is typeset according to the current
@@ -680,7 +772,7 @@ flush left alignment.
 The method C<textwidth> will return the actual width of the text that
 was set. Note that this may be larger than the specified width of the
 text box, when the text contains unbreakable items larger than the
-width.
+desired width.
 
 Values for C<$align> are C<"l"> (default): flush left, C<"r">: flush
 right, C<"c">: centered, C<"j">: justified.
@@ -793,9 +885,15 @@ sub _ps_textbox {
 	foreach $t ( @$tt ) {
 	    $cur = shift(@$t);
 	    next unless @$t;
-	    $ret .= $cur->ps_setfont;
+	    my $needsave = $cur->ps_setfont;
+	    if ( $needsave ) {
+		$ret .= "gsave\n";
+		$self->ps_setfont(undef);
+	    }
+	    $ret .= $needsave;
 	    $t = [map { ref($_) ? @$_ : $_*$stretch } @$t];
 	    $ret .= $cur->ps_tj ($t);
+	    $ret .= "currentpoint grestore moveto\n" if $needsave;
 	    $did++;
 	}
 	$did;
@@ -901,7 +999,13 @@ sub _ps_simpletextbox {
     my $y = ref($yy) ? $$yy : $yy;
 
     # Accumulated output.
-    my $ret = $self->ps_setfont();
+    my $ret = '';
+    my $needsave = $self->ps_setfont();
+    if ( $needsave ) {
+	$ret .= "gsave\n";
+	$self->ps_setfont(undef);
+    }
+    $ret .= $needsave;
 
     # Scaling for fill, only when justifying.
     my $scale = ($align eq 'j') ? FONTSCALE/$self->fontsize : 0;
@@ -971,6 +1075,7 @@ sub _ps_simpletextbox {
     $$yy = $y if ref($yy);
     $$xxi = $xi if ref($xxi);
     $self->{textwidth} = $maxwidth;
+    $ret .= "currentpoint grestore moveto\n" if $needsave;
     $ret;
 }
 
@@ -1003,6 +1108,10 @@ __END__
 
     # Convert millimeters to PostScript units.
     sub mm { ($_[0] * 720) / 254 }
+
+=head1 SEE ALSO
+
+L<PostScript::Resources> and L<PostScript::FontMetrics>.
 
 =head1 AUTHOR
 
