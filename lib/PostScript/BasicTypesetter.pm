@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 23 09:01:27 2000
-# Update Count    : 454
+# Last Modified On: Fri Jun 23 09:09:20 2000
+# Update Count    : 455
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -922,7 +922,7 @@ sub _ps_simpletextbox {
 	$align = "l"if $align eq "j";
 	$flush->();
 	# Update indent value.
-	$xi += $wd;
+	$xi = $wd;
     }
     elsif ( ref($yy) ) {
 	$y += $lineskip;	# already updated, so fix it
