@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Oct 19 21:32:58 1999
-# Update Count    : 356
+# Last Modified On: Mon Dec 13 21:32:48 1999
+# Update Count    : 358
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -18,7 +18,7 @@ use IO;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.00_02";
+$VERSION = "1.00_03";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.
@@ -186,13 +186,13 @@ sub EncodingVector {
 
 sub StandardEncoding {
     @StandardEncoding = split(' ', $StandardEncoding)
-      unless defined @StandardEncoding;
+      unless @StandardEncoding;
     \@StandardEncoding;
 }
 
 sub ISOLatin1Encoding {
     @ISOLatin1Encoding = split(' ', $ISOLatin1Encoding)
-      unless defined @ISOLatin1Encoding;
+      unless @ISOLatin1Encoding;
     \@ISOLatin1Encoding;
 }
 
