@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jul  3 21:59:23 2000
-# Update Count    : 542
+# Last Modified On: Fri Apr 13 13:43:49 2001
+# Update Count    : 555
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -320,10 +320,10 @@ Example:
     $ts->linebreak(\&break);
 
 Sets or gets the code to be executed when C<ps_textbox> advances due
-to a line break. The subroutine is called with a reference to the
-current vertical position and should adjust the value. The routine may
-return PostScript instructions that will be included in the result of
-C<ps_textbox>.
+to a line break. The subroutine is called as a method with a reference
+to the current vertical position and should adjust the value. The
+routine should return PostScript instructions that are necessary for
+the line break, if any.
 
 =cut
 
@@ -778,6 +778,27 @@ sub ps_tj {
     $ret;
 }
 
+=head2 ps_linebreak
+
+Example:
+
+    print $ts->ps_linebreak (\$y);
+
+Produces the PostScript code to advance to the next logical line,
+advancing the value of C<$y>. The default operation is to decrement
+C<$y> with the value of C<$ts->lineskip>, but C<$tr->linebreak> may be
+called to install a different linebreak handler.
+
+=cut
+
+sub ps_linebreak {
+    my ($self, $yref) = @_;
+    my $code = $self->{linebreak};
+    return $code->($self, $yref) if $code;
+    $$yref -= $self->{lineskip};
+    '';
+}
+
 =head2 ps_textbox
 
 Example:
@@ -787,7 +808,9 @@ Example:
 Produces the PostScript code to typeset a string, or a set of strings.
 
 The string will be printed starting at base postion C<$x> and C<$y>.
-If the string exceeds the width C<$w> a line wrap will occur.
+If the string exceeds the width C<$w> a line wrap will occur and the
+C<ps_linebreak> method of the typesetter is called.
+
 The first line will be indented with C<$xi>.
 
 C<ps_textbox> will take care of font changes and color settings, but
@@ -797,7 +820,7 @@ If C<$str> is a reference to an array, this array may contain a mix of
 strings, PostScript::BasicTypesetter objects, and array references
 (recursive). Each string is typeset according to the current
 typesetter; a typesetter object changes the current typesetter for the
-rest of the array. However, the lineskip value of the initial
+rest of the array. However, the linebreak handler of the initial
 typesetter is used for linewraps, regardless the typesetter currently
 in control.
 
@@ -1005,13 +1028,7 @@ sub _ps_textbox {
 	    # No. Fill what we have.
 	    if ( $flush->() ) {
 		# Advance to next line.
-		if ( $lbreak ) {
-		    $ret .= $lbreak->(\$y);
-		}
-		else {
-		    $y -= $lskip;
-		}
-
+		$ret .= $cur00->ps_linebreak(\$y);
 		# Reset.
 		@res = ();
 		$wd = 0;
@@ -1077,7 +1094,6 @@ sub _ps_simpletextbox {
 
     # Line skip (baselines).
     my $lineskip = $self->{lineskip};
-    my $lbreak = $self->{linebreak};
 
     my @res;
     my $maxwidth = 0;		# max width of textbox
@@ -1108,16 +1124,11 @@ sub _ps_simpletextbox {
 	    # No -> flush what we have.
 	    $flush->();
 	    # Advance to next line.
-	    if ( $lbreak ) {
-		$ret .= $lbreak->(\$y);
-	    }
-	    else {
-		$y -= $lineskip;
-	    }
+	    $ret .= $self->ps_linebreak(\$y);
 	    # Reset.
 	    @res = ();
-	    $wd = -$wspace;
 	    $xi = 0;
+	    $wd = -$wspace;
 	}
 	# It fits -> append.
 	$wd += $wspace + $w;
