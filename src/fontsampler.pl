@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Jul  1 13:49:35 2000
-# Update Count    : 442
+# Last Modified On: Wed Sep 27 11:05:35 2000
+# Update Count    : 466
 # Status          : Released
 
 ################ Common stuff ################
@@ -23,11 +23,13 @@ $my_version .= '*' if length('$Locker$ ') > 12;
 use Getopt::Long 2.00;
 
 my $details = 0;
-my $align = 0;
+my $align;
 my $include = 1;
 my $vector = 0;
 my $verbose = 0;
 my $manualfeed = 0;
+my $duplex = 0;
+my $tumble;
 my $famskip = 1;
 my $altshow = 0;		# use alternative glyph show
 my $title = "Font Samples";
@@ -186,6 +188,10 @@ sub preamble {
 	    $select = 1 if $details    && $1 eq "details";
 	    $select = 1 if !$details   && $1 eq "samples";
 	    $select = 1 if $manualfeed && $1 eq "manualfeed";
+	    $select = 1 if $duplex     && $1 eq "duplex";
+	    $select = 1 if !$duplex    && $1 eq "noduplex";
+	    $select = 1 if $tumble     && $1 eq "tumble";
+	    $select = 1 if !$tumble    && $1 eq "notumble";
 	    $select = 1 if $altshow    && $1 eq "altshow";
 	    next;
 	}
@@ -298,8 +304,10 @@ sub options {
 	usage ()
 	    unless GetOptions (ident => \$ident,
 			       'details!' => \$details,
-			       align => \$align,
+			       'align!' => \$align,
 			       manualfeed => \$manualfeed,
+			       'duplex!' => \$duplex,
+			       'tumble!' => \$tumble,
 			       forcevector => \$vector,
 			       'title=s' => \$title,
 			       'include!' => \$include,
@@ -313,6 +321,11 @@ sub options {
     }
     usage () unless @ARGV > 0;	# need arguments!
 
+    if ( $duplex ) {
+	$tumble = 1 unless defined $tumble;
+	$align = 1 unless defined $align;
+    }
+
     print STDERR ("This is $my_package [$my_name $my_version]\n")
 	if $ident;
 }
@@ -322,14 +335,18 @@ sub usage {
 This is $my_package [$my_name $my_version]
 Usage: $0 [options] fontfile [...]
     -details		show font details instead of samples
-    -align		align to double page (only with -details)
+    -[no]align		align to double page (only with -details)
     -manualfeed		manual feed paper
+    -[no]duplex		duplex printing
+    -[no]tumble		tumble
     -title XXX		descriptive title
     -[no]famskip	extra space between different families
     -[no]include	include the font definition (default)
     -help		this message
     -ident		show identification
     -verbose		verbose information
+
+Option -duplex will automatically set -tumble and -align.
 EndOfUsage
     exit 1;
 }
@@ -345,8 +362,10 @@ fontsampler [options] [PostScript font files ...]
 
  Options:
    -details		show font details instead of samples
-   -align		align to double page (only with -details)
+   -[no]align		align to even page (default with -duplex)
    -manualfeed		manual feed paper
+   -[no]duplex		duplex printing
+   -[no]tumble		tumble (default with -duplex)
    -title XXX		descriptive title
    -[no]include		include the font definition (default)
    -[no]famskip		add extra space between different families
@@ -390,10 +409,24 @@ happily process True Type fonts as well.
 
 Enable detailed output.
 
-=item B<-align>
+=item B<->[B<no>]B<align>
 
 With B<-details>, start every new font on an even page. Useful for
 n-up processing and duplex printing.
+
+This option is automatically enabled with duplex printing.
+
+=item B<->[B<no>]B<duplex>
+
+Insert PostScript code to enable or disable duplex printing. This need
+to be supported by the printer.
+
+This options will also enable B<-align> and B<-tumble>.
+
+=item B<->[B<no>]B<tumble>
+
+Insert PostScript code to enable or disable tumble. Only relevant with
+duplex printing.
 
 =item B<-manualfeed>
 
@@ -707,4 +740,16 @@ ISOLatin1Encoding { ISOLatin1Dict exch true put } forall
 /x0 50 def
 /y0  800 def
 end
+%+ duplex
+statusdict /setduplexmode known { statusdict begin true setduplexmode end } if
+%-
+%+ noduplex
+statusdict /setduplexmode known { statusdict begin false setduplexmode end } if
+%-
+%+ tumble
+statusdict /settumble known { statusdict begin true settumble end } if
+%-
+%+ notumble
+statusdict /settumble known { statusdict begin false settumble end } if
+%-
 %%EndSetup
