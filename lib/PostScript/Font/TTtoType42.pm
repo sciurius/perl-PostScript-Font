@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Dec 20 14:38:04 2002
-# Update Count    : 144
+# Last Modified On: Fri Dec 20 14:40:45 2002
+# Update Count    : 145
 # Status          : Released
 
 ################ Module Preamble ################
@@ -584,6 +584,15 @@ string. Newlines are embedded for readability.
 
 Writes the font data in Type42 format to the named file.
 
+=item afm_as_string
+
+Returns the font metrics in AFM format as a reference to a single
+string. Newlines are embedded for readability.
+
+=item write_afm(I<afmname>)
+
+Writes the font metrics in AFM format to the named file.
+
 =item glyphnames
 
 Returns an array reference with the names of all the glyphs of the
@@ -610,6 +619,9 @@ The specification of the Type 42 font format.
 
 The True Type reference manual.
 
+=item http://partners.adobe.com/asn/developer/PDFS/TN/5004.AFM_Spec.pdf
+
+The specification of the Adobe font metrics file format.
 =back
 
 =head1 AUTHOR
