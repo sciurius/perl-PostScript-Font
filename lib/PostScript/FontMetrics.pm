@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jul  3 16:55:53 2000
-# Update Count    : 426
+# Last Modified On: Mon Jul  3 17:07:58 2000
+# Update Count    : 430
 # Status          : Released
 
 ################ Module Preamble ################
@@ -270,7 +270,7 @@ sub setEncoding {
 	croak ("Invalid encoding vector");
     }
     $self->{encodingvector} = $enc;
-    delete $self->{_ordcache};
+    delete $self->{_charcache};
     $self;
 }
 
@@ -405,19 +405,19 @@ sub kstring {
     wantarray ? @res : \@res;
 }
 
-sub ord {
+sub char {
     my ($self, $glyph) = @_;
 
     # Return from cache if possible.
-    my $ord = $self->{_ordcache}->{$glyph};
-    return $ord if defined $ord;
+    my $char = $self->{_charcache}->{$glyph};
+    return $char if defined $char;
 
     # Look it up.
-    $ord = -1;
+    $char = -1;
     foreach ( @{$self->EncodingVector} ) {
-	$ord++;
+	$char++;
 	next unless $_ eq $glyph;
-	return $self->{_ordcache}->{$glyph} = $ord;
+	return $self->{_charcache}->{$glyph} = pack("C",$char);
     }
     undef;
 }
@@ -634,10 +634,11 @@ the following Perl code would suffice:
 
     print PS ("[ @$typesetinfo ] TJ\n");
 
-=item ord
+=item char
 
-Returns the ordinal value of the named glyph in the current encoding,
-or C<undef> if this glyph is currently not encoded.
+Returns a one-character string that will render as the named glyph in
+the current encoding, or C<undef> if this glyph is currently not
+encoded.
 
 =back
 

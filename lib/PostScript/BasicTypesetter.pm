@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jul  3 16:57:43 2000
-# Update Count    : 528
+# Last Modified On: Mon Jul  3 17:08:56 2000
+# Update Count    : 532
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
@@ -407,23 +407,24 @@ sub textwidth {
     $self->{textwidth};
 }
 
-=head2 ord
+=head2 char
 
 Example:
 
-    $ord = $ts->ord("quotedblleft");
+    $char = $ts->char("quotedblleft");
 
-Returns the ordinal value of the named glyph in the current encoding,
-or C<undef> if this glyph is currently not encoded.
+Returns a one-character string that will render as the named glyph in
+the current encoding, or C<undef> if this glyph is currently not
+encoded.
 
-This is a convenience method that calls the C<ord> method of the
+This is a convenience method that calls the C<char> method of the
 associated FontMetrics object.
 
 =cut
 
-sub ord {
+sub char {
     my ($self, $glyph) = @_;
-    $self->metrics->ord ($glyph);
+    $self->metrics->char ($glyph);
 }
 
 ################ PostScript code builders ################
