@@ -3,13 +3,13 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Dec 24 16:32:06 2002
-# Update Count    : 577
+# Last Modified On: Mon Jun 23 15:40:43 2003
+# Update Count    : 579
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
 
-$VERSION = "0.03";
+$VERSION = "0.04";
 
 use 5.005;
 use strict;
@@ -935,7 +935,7 @@ sub _ps_textbox {
 	else {
 	    undef $ts;
 	}
-	pop (@res) until ref($res[-1]);
+	pop(@res) until ref($res[-1]) || @res == 0;
 	push (@res, $ts) if $ts;
 
 	foreach ( @res ) {
