@@ -1,8 +1,8 @@
 # RCS Status      : $Id$# Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri May 14 00:06:04 1999
-# Update Count    : 169
+# Last Modified On: Fri Sep 24 14:52:27 1999
+# Update Count    : 177
 # Status          : Looks okay
 
 ################ Module Preamble ################
@@ -18,7 +18,7 @@ use File::Basename;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.0";
+$VERSION = "1.00_01";
 
 my $ResourcePath = ".";		# default standard resource path
 my $defupr = "PSref.upr";	# principal resource file
@@ -40,7 +40,7 @@ sub new {
 		  error   => 'die',	# 'die', 'warn' or 'ignore'
 		  verbose => 0,
 		  trace   => 0,
-		  debug   => 1,
+		  debug   => 0,
 		  @_);
 
     $debug   =           lc($atts{debug});
@@ -138,13 +138,16 @@ sub new {
 
 sub FontAFM ($$) {
     my ($self, $font) = @_;
-    return undef unless defined ($font = $self->{FontAFM}->{$font});
-    _buildfilename ($self, $font)
+    return _buildfilename ($self, $font)
+      if defined ($font = $self->{FontAFM}->{$font});
+    undef;
 }
 
 sub FontOutline ($$) {
     my ($self, $font) = @_;
-    _buildfilename ($self, $font);
+    return _buildfilename ($self, $font)
+      if defined ($font = $self->{FontOutline}->{$font});
+    undef;
 }
 
 sub _buildfilename ($$) {
@@ -479,8 +482,15 @@ Your mileage on other platforms may vary.
 
 =head1 SEE ALSO
 
-Appendix A of I<Display PostScript Toolkit for X>, Adobe Technical
-Note C<DPS.refmanuals.TK.pdf>.
+=over 4
+
+=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/DPS.refmanuals.TK.pdf
+
+The specification of the Adobe Display PostScript Toolkit for X. The
+format of the font resources file is described in appendix A of this
+document.
+
+=back
 
 =head1 AUTHOR
 
