@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : Thu May 13 15:59:04 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Sep 24 14:17:42 1999
-# Update Count    : 190
+# Last Modified On: Fri Sep 24 14:48:21 1999
+# Update Count    : 194
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -32,7 +32,7 @@ $my_version .= '*' if length('$Locker$ ') > 12;
 
 ################ Command line parameters ################
 
-my $fontname = "Minion-Regular";
+my $fontname = "CharterBT-Roman";
 my $fontsize = 14;
 
 use Getopt::Long 2.13;
@@ -231,6 +231,7 @@ sub textline {
 		  "[");
     my $l = 1;
     foreach ( @$t ) {
+	$_ = sprintf("%.3g", $_) unless /^\(/;
 	if ( ($l += length) >= 80 ) {
 	    print STDOUT ("\n ");
 	    $l = 1 + length;
