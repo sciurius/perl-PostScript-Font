@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Jan  6 18:52:22 1999
-# Update Count    : 78
+# Last Modified On: Thu Jan 14 19:00:03 1999
+# Update Count    : 89
 # Status          : Released
 
 ################ Copyright ################
@@ -25,7 +25,7 @@
 
 ################ Module Preamble ################
 
-package PostScript::Type1;
+package PostScript;
 
 use strict;
 use IO;
@@ -46,13 +46,17 @@ my $trace;
 sub loadfont ($@) {
 
     my ($fn) = shift;
-    my (%atts) = (check => 'strict', error => 'die',
+    my (%atts) = (error => 'die',
 		  format => 'ascii', trace => 0, @_);
     $trace = lc($atts{trace});
     $atts{format} = "ascii" if lc($atts{format}) eq "pfa";
     $atts{format} = "binary" if lc($atts{format}) eq "pfb";
 
     my $data;			# font data
+    my $name;			# font name
+    my $type;			# font type
+    my $fam;			# font family
+    my $version;		# font version
 
     eval {			# so we can use die
 
@@ -75,30 +79,43 @@ sub loadfont ($@) {
 	    $data = ${_pfb2pfa($fn,\$data)};
 	}
 	# Otherwise, must be straight PostScript.
-	elsif ( $data !~ /^(%%BeginFont.*?\n)?%!/ ) {
+	elsif ( $data !~ /^%!/ ) {
 	    die ("$fn: Not a recognizable font file\n");
 	}
 
 	# Normalise line endings.
 	$data =~ s/\015\012?/\n/g;
 
-	# Strip optional %%Begin/End Font.
-	$data =~ s/^%%BeginFont.*\n//;
-	$data =~ s/\n%%EndFont.*$/\n/;
-
-	unless ( lc($atts{check}) eq "relaxed" ) {
-	    # Verify Type1 font.
-	    die ("$fn: Not a PostScript Type1 font\n")
-	      unless $data =~ /^%!PS-AdobeFont/;
-	    die ("$fn: Not a Type1 font\n")
-	      unless $data =~ m|/FontType\s+1\s+def|;
-	}
     };
 
     if ( $@ ) {
 	die ($@) unless lc($atts{error}) eq "warn";
 	warn ($@);
 	return undef;
+    }
+
+    if ( wantarray ) {
+	if ( $data =~ /^%!FontType(\d+)\n\/(\S+)\n/ ) {
+	    $type = $1;
+	    $name = $2;
+	}
+	elsif ( $data =~ /\/FontName\s*\/(\S+)/ ) {
+	    $name = $1;
+	}
+	elsif ( $data =~ /\/FontName\s*\(([^\051]+)\)/ ) {
+	    $name = $1;
+	}
+	if ( $data =~ /\/FamilyName\s*\/(\S+)/ ) {
+	    $fam = $1;
+	}
+	elsif ( $data =~ /\/FamilyName\s*\(([^\051]+)\)/ ) {
+	    $fam = $1;
+	}
+	unless ( defined $type ) {
+	    $type = $1 if $data =~ /\/FontType\s+(\d+)/;
+	}
+	$version = $1 if $data =~ /\/version\s*\(([^\051]+)\)/;
+	print STDERR ("=> Name = $name, type = $type\n") if $trace;
     }
 
     # Return new data.
@@ -108,7 +125,8 @@ sub loadfont ($@) {
     elsif ( lc($atts{format}) eq "binary" ) {
 	$data = ${_pfa2pfb($fn, \$data)};
     }
-    $data;
+    wantarray ? ( font => $data, name => $name, family => $fam,
+		  version => $version, type => $type ) : $data;
 }
 
 sub _pfb2pfa ($\$) {
