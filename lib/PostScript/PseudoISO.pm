@@ -3,8 +3,8 @@
 # Author          : Johan Vromans
 # Created On      : Tue Jun 20 17:07:38 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jul  3 16:59:36 2000
-# Update Count    : 33
+# Last Modified On: Thu Apr 25 10:18:20 2002
+# Update Count    : 36
 # Status          : Unknown, Use with caution!
 
 package PostScript::PseudoISO;
@@ -21,7 +21,7 @@ PostScript::PseudoISO - Module with handy ISO enhancements
 
     $str = "This is an emdash: ---";
     # Encode
-    $t = PostScript::PseudoISO::->prepare($str);
+    $t = PostScript::PseudoISO::->prepstr($str);
 
 =head1 DESCRIPTION
 
@@ -32,6 +32,12 @@ The (class) routine C<prepstr> massages a string and makes the
 following changes, if appropriate:
 
 =over 4
+
+=item *
+
+Any sequence of whitespace characters is compressed into a single
+space.  To retain spaces, use characters with ocal code 240 which will
+be turned into ordinary spaces but not compressed.
 
 =item *
 
@@ -88,6 +94,9 @@ sub prepstr {
 
     # Compress multiple blanks.
     s/\s+/ /g;
+
+    # Handle hard spaces.
+    s/\240/ /g;
 
     # Handle ellipsis.
     s/(^|[^.])\.\.\.([^.]|$)/$1\200$2/g;
