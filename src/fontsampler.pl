@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jul  9 18:12:45 1999
-# Update Count    : 369
+# Last Modified On: Fri Sep 24 15:11:23 1999
+# Update Count    : 410
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -28,6 +28,7 @@ my $include = 1;
 my $vector = 0;
 my $verbose = 0;
 my $manualfeed = 0;
+my $famskip = 1;
 my $title = "Font Samples";
 my ($debug, $trace, $test) = (0, 0, 0);
 
@@ -39,14 +40,6 @@ $title = ps_str ($title);
 ################ Presets ################
 
 use PostScript::Font;
-
-# Find binaries for conversions, if needed.
-$PostScript::Font::ttf2pt1 = getexec ("ttf2pt1")
-  if !defined $PostScript::Font::ttf2pt1;
-$PostScript::Font::ttftot42 = getexec ("ttftot42")
-  if !defined $PostScript::Font::ttftot42;
-$PostScript::Font::t1disasm = getexec ("t1disasm")
-  if $details && !defined $PostScript::Font::t1disasm;
 
 my $TMPDIR = $ENV{'TMPDIR'} || '/usr/tmp';
 
@@ -131,19 +124,23 @@ foreach my $file ( @ARGV ) {
 	    setuppage ();
 	    $samples = 0;
 	}
-	if ( $samples == 0 ) {
-	    $lastfam = $font->FamilyName;
-	}
-	elsif ( $font->FamilyName ne $lastfam ) {
-	    $lastfam = $font->FamilyName;
-	    if ( $lastfam and $page > 0 ) {
-		$samples++;
+	if ( $famskip ) {
+	    if ( $samples == 0 ) {
+		$lastfam = $font->FamilyName;
+	    }
+	    elsif ( $font->FamilyName ne $lastfam ) {
+		$lastfam = $font->FamilyName;
+		if ( $lastfam and $page > 0 ) {
+		    $samples++;
+		}
 	    }
 	}
 
 	print STDOUT ("save\n");
 	include_font ($font);
-	print STDOUT ("/", $font->FontName, " ", 800-($samples*10),
+	print STDOUT ("(", $font->FontName, ") ",
+		      "(", $font->FileName, ") ",
+		      800-($samples*10),
 		      " FontSample restore\n");
 	$samples += 2;
     }
@@ -275,17 +272,6 @@ sub ps_str ($) {
     "(".$line.")";
 }
 
-sub getexec ($) {
-    my ($exec) = @_;
-    foreach ( split (':', $ENV{PATH}) ) {
-	if ( -x "$_/$exec" ) {
-	    print STDERR ("Using $_/$exec\n") if $verbose;
-	    return "$_/$exec";
-	}
-    }
-    undef;
-}
-
 sub options {
     my $help = 0;		# handled locally
     my $ident = 0;		# handled locally
@@ -300,6 +286,7 @@ sub options {
 				forcevector => \$vector,
 				'title=s' => \$title,
 				'include!' => \$include,
+				'famskip!' => \$famskip,
 				verbose => \$verbose,
 				trace => \$trace,
 				help => \$help,
@@ -318,6 +305,7 @@ Usage: $0 [options] fontfile [...]
     -align		align to double page (only with -details)
     -manualfeed		manual feed paper
     -title XXX		descriptive title
+    -[no]famskip	extra space between different families
     -[no]include	include the font definition (default)
     -help		this message
     -ident		show identification
@@ -340,7 +328,8 @@ fontsampler [options] [PostScript font files ...]
    -align		align to double page (only with -details)
    -manualfeed		manual feed paper
    -title XXX		descriptive title
-   -include		include the font definition (default)
+   -[no]include		include the font definition (default)
+   -[no]famskip		add extra space between different families
    -ident		show identification
    -help		brief help message
    -man                 full documentation
@@ -349,24 +338,29 @@ fontsampler [options] [PostScript font files ...]
 =head1 DESCRIPTION
 
 B<fontsampler> writes a PostScript document to standard output to make
-sample pages of PostScript fonts.
+sample pages of PostScript and True Type fonts.
 
-The program takes, as command line arguments, PostScript font files.
-Each of These files should contain an ASCII encoded font (a so called
-C<.pfa> file), or a binary encoded font (a so called C<.pfb> file).
+The program takes, as command line arguments, font files. For
+PostScript files, these should contain an ASCII encoded font (a so
+called C<.pfa> file), or a binary encoded font (a so called C<.pfb>
+file).
 
 The resultant PostScript document conforms to Adobe's Document
 Structuring Conventions (DSC), version 3.0.
 
 The program can run in one of two modes, depending on the B<-details>
 option. Without this option, from every font the name and a small
-sample of characters is printed, up to 50 font samples per page.
+sample of characters is printed, up to 38 font samples per page.
 
 With the B<-details> option, every font gets at least one page of
 output. These pages contain detailed information about all the glyphs
 that are present in the font, starting with the glyphs as defined in
 the ISO Latin1 encoding, and followed by the glyphs are not part of
 this encoding. Each page can take up to 256 glyphs.
+
+B<fontsampler> depends on the capabilities of the C<PostScript::Font>
+module. If your version supports True Type fonts, B<fontsampler> will
+happily process True Type fonts as well.
 
 =head1 OPTIONS
 
@@ -398,7 +392,14 @@ When disabled, DSC comments are inserted in the output that need to be
 processed by a suitable print manager (unless all fonts are resident
 in the printer).
 
-B<-incldue> is enabled by default.
+B<-include> is enabled by default.
+
+=item B<->[B<no>]B<famskip>
+
+Add some extra space between entries of different families. This is on
+by default. In the worst case, when all the fonts are of different
+families (or unsorted!) this reduces the number of samples per page to
+about 25.
 
 =item B<-help>
 
@@ -416,10 +417,18 @@ More verbose information.
 
 =head1 BUGS AND PROBLEMS
 
+This program uses the PostScript::Font package to get at the fonts
+info. The cababilities of this program, especially when dealing with
+weird fonts or True Type fonts, depend on this package. See
+L<PostScript::Font> for details.
+
 If a font is shown in a one-page detail page, and it gets substituted
 by a multi-page font, the PostScript engine will crash.
 This usually happens if the font cannot be found, and the PostScript
 engine substitutes the (multi-page) Courier font.
+
+Contrary to popular belief, lots of buggy and erroneous fonts exist.
+Caveat emptor!
 
 =head1 AUTHOR
 
@@ -607,15 +616,40 @@ FontSamplerDict begin
 % } def
 %-
 %+ samples
+/languagelevel where
+  {pop languagelevel}
+  {1}
+ifelse
+2 ge
+  {/x {{e exch get dup /.notdef eq {pop} {glyphshow} ifelse} forall} def}
+  {/x {show} def}
+ifelse
 /FontSample {
   /y exch def
+  /FFile exch def
   dup /FName exch def
-  findfont 14 scalefont /F14 exch def
+  findfont dup /Encoding get /e exch def 14 scalefont /F14 exch def
   x0 y moveto
   T setfont FName Temp cvs show
+  x0 y 8 sub moveto
+  T6 setfont FFile show
   x0 160 add y moveto
-  F14 setfont (ABCDEFGHIJKL abcdefghijklm 0123456789) show
-              ( MNOPQRSTUVWXYZ mnopqrstuvwxyz) show
+  mark
+  { F14 setfont
+    (ABCDEFGHIJKLMabcdefghijkml0123456789NOPQRSTUVWXYZnopqrstuvwxyz)x
+    ( !"#$%&'\(\)*+-./:;<=>?@[\\]^_`{|}~\377)x
+    <000102030405060708090a0b0c0d0e0f>x
+    <101112131415161718191a1b1c1d1e1f>x
+  }
+  stopped {
+    x0 160 add y moveto
+    T setfont (Error: ) show
+    $error /errorname get Temp cvs show
+    ( [) show
+    $error /command get Temp cvs show
+    (] ) show
+  } if
+  cleartomark
 } def
 %-
 /Header {
@@ -635,8 +669,8 @@ end
 %-
 FontSamplerDict begin
 /T /Times-Roman findfont 10 scalefont def
-%+ details
 /T6 /Times-Roman findfont 6 scalefont def
+%+ details
 /Temp 64 string def
 /Inch {72 mul} def
 /Base 16 def	% char code output base
