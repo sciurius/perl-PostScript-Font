@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Oct  9 17:18:06 2000
-# Update Count    : 374
+# Last Modified On: Wed Nov 15 14:46:38 2000
+# Update Count    : 375
 # Status          : Released
 
 ################ Module Preamble ################
@@ -757,11 +757,11 @@ work on Unix only.
 
 =over 4
 
-=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/T1_SPEC.PDF
+=item http://partners.adobe.com/asn/developer/PDFS/TN/T1_SPEC.PDF
 
 The specification of the Type 1 font format.
 
-=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/5012.Type42_Spec.pdf
+=item http://partners.adobe.com/asn/developer/PDFS/TN/5012.Type42_Spec.pdf
 
 The specification of the Type 42 font format.
 
@@ -769,7 +769,7 @@ The specification of the Type 42 font format.
 
 The True Type reference manual.
 
-=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/5004.AFM_Spec.pdf
+=item http://partners.adobe.com/asn/developer/PDFS/TN/5004.AFM_Spec.pdf
 
 The specification of the Adobe font metrics file format.
 

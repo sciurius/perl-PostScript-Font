@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jul  3 17:07:58 2000
-# Update Count    : 430
+# Last Modified On: Wed Nov 15 14:47:38 2000
+# Update Count    : 431
 # Status          : Released
 
 ################ Module Preamble ################
@@ -658,7 +658,7 @@ I<ttftot42> can be found on http://ftp.giga.or.at/pub/nih/ttftot42
 
 =over 4
 
-=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/5004.AFM_Spec.pdf
+=item http://partners.adobe.com/asn/developer/PDFS/TN/5004.AFM_Spec.pdf
 
 The specification of the Adobe font metrics file format.
 

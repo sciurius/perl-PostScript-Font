@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 10:47:10 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Jun 18 11:27:54 2000
-# Update Count    : 13
+# Last Modified On: Wed Nov 15 14:49:07 2000
+# Update Count    : 14
 # Status          : Released
 
 ################ Module Preamble ################
@@ -98,7 +98,7 @@ is useful to quickly compare encodings.
 
 =over 4
 
-=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/T1_SPEC.PDF
+=item http://partners.adobe.com/asn/developer/PDFS/TN/T1_SPEC.PDF
 
 The specification of the Type 1 font format.
 

@@ -1,8 +1,8 @@
 # RCS Status      : $Id$# Author          : Johan Vromans
 # Created On      : Januari 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Feb  4 10:23:29 2000
-# Update Count    : 182
+# Last Modified On: Wed Nov 15 14:46:55 2000
+# Update Count    : 183
 # Status          : Released
 
 ################ Module Preamble ################
@@ -484,7 +484,7 @@ Your mileage on other platforms may vary.
 
 =over 4
 
-=item http://www.adobe.com/supportservice/devrelations/PDFS/TN/DPS.refmanuals.TK.pdf
+=item http://partners.adobe.com/asn/developer/PDFS/TN/DPS.refmanuals.TK.pdf
 
 The specification of the Adobe Display PostScript Toolkit for X. The
 format of the font resources file is described in appendix A of this
