@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Feb  4 10:22:34 2000
-# Update Count    : 416
+# Last Modified On: Wed Jun 28 19:34:55 2000
+# Update Count    : 429
 # Status          : Released
 
 ################ Common stuff ################
@@ -78,8 +78,17 @@ foreach my $file ( @ARGV ) {
 
 	# Get the glyphs.
 	my $glyphs = $font->FontGlyphs;
-	unless ( defined $glyphs ) {
+
+	if ( !defined $glyphs or @$glyphs == 0 ) {
 	    print STDERR ($font->FileName, ": No glyphs found, skipped\n");
+	    next;
+	}
+
+	# Register the glyph names.
+	my %glyphtbl = map { $_ => 1 } @$glyphs;
+	if ( join("",keys %glyphtbl) eq ".notdef" ) {
+	    print STDERR ($font->FileName, 
+			  ": Only '.notdef' glyphs found, skipped\n");
 	    next;
 	}
 
@@ -97,9 +106,6 @@ foreach my $file ( @ARGV ) {
 			  " glyphs, ",
 			  int(scalar(@$glyphs+255)/256),
 			  " pages\n") if $verbose;
-
-	    # Register the glyph names.
-	    my %glyphtbl = map { $_ => 1 } @$glyphs;
 
 	    # Build encoding vector.
 	    # First the elements from the standard encoding.
