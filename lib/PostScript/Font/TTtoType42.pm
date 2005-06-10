@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Feb  5 18:08:15 2005
-# Update Count    : 187
+# Last Modified On: Fri Jun 10 22:50:24 2005
+# Update Count    : 193
 # Status          : Released
 
 ################ Module Preamble ################
@@ -63,11 +63,18 @@ sub as_string {
     $version = sprintf("%07.3f", $1) if $version =~ /(\d+\.\d+)/;
 
     # Font bounding box.
+    # Some fonts have dimensions that are 1000 times too small. Let's
+    # do some auto-sensing.
+    my $fix = 1;
     my $scale = do {
 	my $u = $head->{unitsPerEm};
-	sub {int($_[0] / $u)}
+	sub {int($_[0] * $fix / $u)}
     };
     my @bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
+    if ( !$bb[0] || !$bb[1] || !$bb[2] || !$bb[3] ) {
+	$fix = 1000;
+	@bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
+    }
 
     # Glyph table.
     my $glyphs = $self->glyphs;
@@ -261,11 +268,18 @@ sub afm_as_string {
     $version = sprintf("%07.3f", $1) if $version =~ /(\d+\.\d+)/;
 
     # Font bounding box.
+    # Some fonts have dimensions that are 1000 times too small. Let's
+    # do some auto-sensing.
+    my $fix = 1;
     my $scale = do {
 	my $u = $head->{unitsPerEm};
-	sub {int($_[0] / $u)}
+	sub {int($_[0] * $fix / $u)}
     };
     my @bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
+    if ( !$bb[0] || !$bb[1] || !$bb[2] || !$bb[3] ) {
+	$fix = 1000;
+	@bb = map { $scale->($head->{$_}) } qw(xMin yMin xMax yMax);
+    }
 
     # Glyph table.
     my $glyphs = $self->glyphs;
@@ -401,7 +415,7 @@ sub afm_as_string {
 	foreach my $left ( keys %$kerns ) {
 	    foreach my $right ( keys %{$kerns->{$left}} ) {
 		$k{$glyphs->[$left]}{$glyphs->[$right]} =
-		  $kerns->{$left}{$right};
+		  $scale->($kerns->{$left}{$right});
 		$nkern++;
 	    }
 	}
