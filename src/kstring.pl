@@ -4,8 +4,8 @@ my $RCS_Id = '$Id$ ';
 # Author          : Johan Vromans
 # Created On      : Fri Apr  9 14:51:00 2004
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Apr  9 16:06:41 2004
-# Update Count    : 75
+# Last Modified On: Sat Mar 12 16:18:45 2005
+# Update Count    : 76
 # Status          : Released
 
 ################ Common stuff ################
@@ -62,13 +62,13 @@ sub set_font {
 	    $metrics =~ s/\.[^.]+$//;
 	    $metrics .= ".afm";
 	}
-	$fm = new PostScript::FontMetrics($metrics);
+	$fm = new PostScript::FontMetrics($metrics, verbose => 1);
     }
     else {
 	$fm = do {
 	    local($^W) = 0;
 	    no warnings;
-	    new PostScript::FontMetrics($font);
+	    new PostScript::FontMetrics($font, verbose => 1);
 	};
     }
 }
