@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Oct 23 14:12:12 2003
-# Update Count    : 466
+# Last Modified On: Fri Jun 10 19:00:43 2005
+# Update Count    : 479
 # Status          : Released
 
 ################ Module Preamble ################
@@ -96,7 +96,7 @@ sub _loadafm ($) {
 
     # Read in the afm data.
     my $len = 0;
-
+    binmode($fh);		# (Some?) Windows need this
     unless ( ($len = $fh->sysread ($data, 4, 0)) == 4 ) {
 	$self->_die("$fn: Expecting $sz bytes, got $len bytes\n");
     }
@@ -190,6 +190,9 @@ sub _getwidthdata {
 		$self->{encodingvector} = [];
 	    }
 	}
+	else {
+	    $self->{encodingvector} = [];
+	}
     }
     my $enc = $self->{encodingvector};
     my $nglyphs = 0;
@@ -197,8 +200,10 @@ sub _getwidthdata {
     foreach ( split (/\n/, $self->{data}) ) {
 	if ( /^StartCharMetrics/ .. /^EndCharMetrics/ ) {
 	    # Only lines that start with "C" or "CH" are parsed.
-	    next unless /^CH?\s+(-?\d+)\s*;/;
+	    # C nn, C -1 or C <HH> (two hexits).
+	    next unless /^CH?\s+(-?\d+|<[0-9a-f]+>)\s*;/i;
 	    my $ix = $1;
+	    $ix = hex($1) if $1 =~ /^<(.+)>$/;
 	    my ($name) = /\bN\s+(\.?\w+(?:-\w+)?)\s*;/;
 	    my ($wx)   = /\bWX\s+(\d+)\s*;/;
 	    $wx{$name} = $wx;
@@ -243,15 +248,19 @@ sub _getbboxdata {
 sub _getkerndata {
     my $self = shift;
     local ($_);
+    my $k = 0;
     my %kern;
     foreach ( split (/\n/, $self->{data}) ) {
-	if ( /^StartKernData/ .. /^EndKernData/ ) {
+	if ( /^StartKern(Data|Pairs)/ .. /^EndKern(Data|Pairs)/ ) {
 	    next unless /^KPX\s+(\S+)\s+(\S+)\s+(-?\d+)/;
 	    $kern{$1,$2} = $3;
+	    $k++;
 	}
 	last if /^EndFontMetrics/;
     }
     ${kern}{'.notdef','.notdef'} = 0 unless %kern;
+    print STDERR ($self->FileName, ": Number of kern pairs = $k\n")
+      if $self->{verbose};
     $self->{Kern} = \%kern;
     $self;
 }
