@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 10 22:50:24 2005
-# Update Count    : 193
+# Last Modified On: Thu Oct 11 11:31:26 2007
+# Update Count    : 195
 # Status          : Released
 
 ################ Module Preamble ################
@@ -401,36 +401,38 @@ sub afm_as_string {
 
     #### Kerning Data
 
-    $ret .= "StartKernData\n";
-    ### $ret .= "StartTrackKern\n";
-    ### $ret .= "EndTrackKern\n";
+    if ( $self->{kern} ) {
+	$ret .= "StartKernData\n";
+	### $ret .= "StartTrackKern\n";
+	### $ret .= "EndTrackKern\n";
 
-    my $kern = $self->{kern}->read;
-    my $nkern = 0;
+	my $kern = $self->{kern}->read;
+	my $nkern = 0;
 
-    # Gather the contents of all the kern tables in a single hash.
-    my %k;
-    foreach my $table ( @{$kern->{tables}} ) {
-	my $kerns = $table->{kern};
-	foreach my $left ( keys %$kerns ) {
-	    foreach my $right ( keys %{$kerns->{$left}} ) {
-		$k{$glyphs->[$left]}{$glyphs->[$right]} =
-		  $scale->($kerns->{$left}{$right});
-		$nkern++;
+	# Gather the contents of all the kern tables in a single hash.
+	my %k;
+	foreach my $table ( @{$kern->{tables}} ) {
+	    my $kerns = $table->{kern};
+	    foreach my $left ( keys %$kerns ) {
+		foreach my $right ( keys %{$kerns->{$left}} ) {
+		    $k{$glyphs->[$left]}{$glyphs->[$right]} =
+		      $scale->($kerns->{$left}{$right});
+		    $nkern++;
+		}
 	    }
 	}
-    }
 
-    # Now print the hash, sorted.
-    $ret .= "StartKernPairs $nkern\n";
-    foreach my $left ( sort keys %k ) {
-	foreach my $right ( sort keys %{$k{$left}} ) {
-	    $ret .= "KPX $left $right " . $k{$left}{$right} . "\n";
+	# Now print the hash, sorted.
+	$ret .= "StartKernPairs $nkern\n";
+	foreach my $left ( sort keys %k ) {
+	    foreach my $right ( sort keys %{$k{$left}} ) {
+		$ret .= "KPX $left $right " . $k{$left}{$right} . "\n";
+	    }
+	    $ret .= "\n";
 	}
-	$ret .= "\n";
+	$ret .= "EndKernPairs\n";
+	$ret .= "EndKernData\n";
     }
-    $ret .= "EndKernPairs\n";
-    $ret .= "EndKernData\n";
 
     ### $ret .= "StartComposites\n";
     ### $ret .= "EndComposites\n";
