@@ -1,11 +1,11 @@
-#!/usr/local/bin/perl
+#!/usr/bin/perl
 my $RCS_Id = '$Id$ ';
 
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Sep 27 11:05:35 2000
-# Update Count    : 466
+# Last Modified On: Wed Apr 12 17:51:54 2006
+# Update Count    : 467
 # Status          : Released
 
 ################ Common stuff ################
