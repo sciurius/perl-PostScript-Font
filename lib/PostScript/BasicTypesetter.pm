@@ -1,15 +1,16 @@
+#! perl
+
 # BasicTypesetter.pm --  Module for basic PostScript typesetting
-# RCS Info        : $Id$
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 11:40:12 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Mon Jun 23 15:40:43 2003
-# Update Count    : 579
+# Last Modified On: Sat Dec 27 21:46:02 2014
+# Update Count    : 581
 # Status          : Unknown, Use with caution!
 
 package PostScript::BasicTypesetter;
 
-$VERSION = "0.04";
+$VERSION = "0.05";
 
 use 5.005;
 use strict;
@@ -1240,7 +1241,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2003,2000 by Squirrel Consultancy. All
+This program is Copyright 2014,2003,2000 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

@@ -1,9 +1,10 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Dec 27 21:35:02 2014
-# Update Count    : 468
+# Last Modified On: Sat Dec 27 21:46:30 2014
+# Update Count    : 469
 # Status          : Released
 
 ################ Module Preamble ################
@@ -20,7 +21,7 @@ use PostScript::StandardEncoding;
 use PostScript::ISOLatin1Encoding;
 
 use vars qw($VERSION);
-$VERSION = "1.05";
+$VERSION = "1.06";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.

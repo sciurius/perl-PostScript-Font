@@ -1,9 +1,10 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : Mon Dec 16 18:56:03 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Oct 11 11:47:15 2007
-# Update Count    : 196
+# Last Modified On: Sat Dec 27 21:46:52 2014
+# Update Count    : 197
 # Status          : Released
 
 ################ Module Preamble ################
@@ -15,7 +16,7 @@ use 5.006;
 use strict;
 use warnings;
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 use base qw(Font::TTF::Font);
 
@@ -673,7 +674,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2002 by Squirrel Consultancy. All
+This program is Copyright 2014,2002 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

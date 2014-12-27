@@ -1,16 +1,17 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : Sat Dec 21 11:48:19 2002
 # Last Modified By: Johan Vromans
-# Last Modified On: Tue Dec 24 00:11:33 2002
-# Update Count    : 16
+# Last Modified On: Sat Dec 27 21:48:18 2014
+# Update Count    : 17
 # Status          : Released
 
 ################ Module Preamble ################
 
 package PostScript::ISOLatin9Encoding;
 
-$VERSION = "1.01";
+$VERSION = "1.02";
 
 use 5.005;
 use strict;
@@ -130,7 +131,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2002 by Squirrel Consultancy. All
+This program is Copyright 2014,2002 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

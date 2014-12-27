@@ -1,9 +1,10 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Oct 23 14:12:25 2003
-# Update Count    : 57
+# Last Modified On: Sat Dec 27 21:47:21 2014
+# Update Count    : 59
 # Status          : Released
 
 ################ Module Preamble ################
@@ -17,7 +18,7 @@ BEGIN { require 5.005; }
 use IO qw(File);
 
 use vars qw($VERSION);
-$VERSION = "1.05";
+$VERSION = "1.06";
 
 sub new {
     my $class = shift;
@@ -209,7 +210,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2003,1998 by Squirrel Consultancy. All
+This program is Copyright 2014,2003,1998 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

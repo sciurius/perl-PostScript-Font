@@ -1,16 +1,17 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : Sun Jun 18 10:47:10 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Nov 15 14:49:07 2000
-# Update Count    : 14
+# Last Modified On: Sat Dec 27 21:49:42 2014
+# Update Count    : 16
 # Status          : Released
 
 ################ Module Preamble ################
 
 package PostScript::StandardEncoding;
 
-$VERSION = "1.01";
+$VERSION = "1.02";
 
 use 5.005;
 use strict;
@@ -110,7 +111,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000,1998 by Squirrel Consultancy. All
+This program is Copyright 2014,2000,1998 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

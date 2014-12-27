@@ -2,12 +2,11 @@
 
 # btexample.pl -- Demo of BasicTypesetter module.
 
-# RCS Info        : $Id$
 # Author          : Johan Vromans
 # Created On      : Tue Jun 20 19:23:58 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Sun Jul  2 12:11:28 2000
-# Update Count    : 46
+# Last Modified On: Sat Dec 27 21:44:38 2014
+# Update Count    : 47
 # Status          : Unknown, Use with caution!
 
 use strict;

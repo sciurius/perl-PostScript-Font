@@ -1,11 +1,10 @@
 #!/usr/local/bin/perl -w
-my $RCS_Id = '$Id$ ';
 
 # Author          : Johan Vromans
 # Created On      : Thu May 13 15:59:04 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Oct 30 18:59:45 1999
-# Update Count    : 195
+# Last Modified On: Sat Dec 27 21:45:20 2014
+# Update Count    : 196
 # Status          : Unknown, Use with caution!
 
 ################ Common stuff ################
@@ -26,9 +25,8 @@ use PostScript::FontMetrics;
 # Package name.
 my $my_package = 'Sciurix';
 # Program name and version.
-my ($my_name, $my_version) = $RCS_Id =~ /: (.+).pl,v ([\d.]+)/;
+my ($my_name, $my_version) = qw(example 1.4);
 # Tack '*' if it is not checked in into RCS.
-$my_version .= '*' if length('$Locker$ ') > 12;
 
 ################ Command line parameters ################
 

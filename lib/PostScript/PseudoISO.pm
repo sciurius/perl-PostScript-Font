@@ -1,15 +1,15 @@
-# PseudoISO.pm -- 
-# RCS Info        : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : Tue Jun 20 17:07:38 2000
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Apr 25 10:18:20 2002
-# Update Count    : 36
+# Last Modified On: Sat Dec 27 21:49:05 2014
+# Update Count    : 37
 # Status          : Unknown, Use with caution!
 
 package PostScript::PseudoISO;
 
-$VERSION = "1.00";
+$VERSION = "1.01";
 
 use strict;
 
@@ -162,7 +162,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000 by Squirrel Consultancy. All
+This program is Copyright 2014,2000 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

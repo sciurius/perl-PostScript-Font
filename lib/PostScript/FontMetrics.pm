@@ -1,9 +1,10 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Jun 10 19:00:43 2005
-# Update Count    : 479
+# Last Modified On: Sat Dec 27 21:47:41 2014
+# Update Count    : 480
 # Status          : Released
 
 ################ Module Preamble ################
@@ -19,7 +20,7 @@ use IO qw(File);
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.06";
+$VERSION = "1.07";
 
 use constant FONTSCALE => 1000;		# normal value for font design
 
@@ -668,7 +669,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000,1998 by Squirrel Consultancy. All
+This program is Copyright 2014,2000,1998 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

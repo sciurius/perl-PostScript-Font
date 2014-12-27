@@ -1,11 +1,10 @@
 #!/usr/bin/perl
-my $RCS_Id = '$Id$ ';
 
 # Author          : Johan Vromans
 # Created On      : January 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Fri Feb  4 10:22:55 2000
-# Update Count    : 37
+# Last Modified On: Sat Dec 27 21:50:38 2014
+# Update Count    : 38
 # Status          : Released
 
 ################ Common stuff ################
@@ -15,8 +14,7 @@ my $RCS_Id = '$Id$ ';
 # require 'common.pl';
 use strict;
 my $my_package = 'Sciurix';
-my ($my_name, $my_version) = $RCS_Id =~ /: (.+).pl,v ([\d.]+)/;
-$my_version .= '*' if length('$Locker$ ') > 12;
+my ($my_name, $my_version) = qw( font2pfa 1.8);
 
 ################ Program parameters ################
 
@@ -165,7 +163,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000,1999 by Squirrel Consultancy. All
+This program is Copyright 2014,2000,1999 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

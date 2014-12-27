@@ -1,8 +1,9 @@
-# RCS Status      : $Id$# Author          : Johan Vromans
+#! perl
+
 # Created On      : Januari 1999
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Oct 23 14:11:52 2003
-# Update Count    : 187
+# Last Modified On: Sat Dec 27 21:49:24 2014
+# Update Count    : 189
 # Status          : Released
 
 ################ Module Preamble ################
@@ -18,7 +19,7 @@ use File::Basename;
 use File::Spec;
 
 use vars qw($VERSION);
-$VERSION = "1.03";
+$VERSION = "1.04";
 
 my $ResourcePath = ".";		# default standard resource path
 my $defupr = "PSref.upr";	# principal resource file
@@ -498,7 +499,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000,1999 by Squirrel Consultancy. All
+This program is Copyright 2014,2000,1999 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify

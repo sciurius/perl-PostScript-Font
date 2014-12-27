@@ -1,9 +1,10 @@
-# RCS Status      : $Id$
+#! perl
+
 # Author          : Andrew Ford
 # Created On      : March 2001
 # Last Modified By: Johan Vromans
-# Last Modified On: Thu Oct 23 14:12:02 2003
-# Update Count    : 45
+# Last Modified On: Sat Dec 27 21:48:43 2014
+# Update Count    : 47
 # Status          : Development
 
 ################ Module Preamble ################
@@ -20,7 +21,7 @@ use IO qw(File);
 use File::Spec;
 
 use vars qw($VERSION @ISA $AUTOLOAD);
-$VERSION = "0.08";
+$VERSION = "1.01";
 
 use PostScript::FontMetrics;
 use PostScript::StandardEncoding;
@@ -482,7 +483,7 @@ Johan Vromans.
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2001 by Andrew Ford and Ford & Mason Ltd.
+This program is Copyright 2014,2001 by Andrew Ford and Ford & Mason Ltd.
 All rights reserved.
 
 This program is free software; you can redistribute it and/or modify
