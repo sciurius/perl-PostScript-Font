@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Wed Feb 11 18:45:49 2004
-# Update Count    : 464
+# Last Modified On: Sat Dec 27 21:31:20 2014
+# Update Count    : 467
 # Status          : Released
 
 ################ Module Preamble ################
@@ -20,7 +20,7 @@ use PostScript::StandardEncoding;
 use PostScript::ISOLatin1Encoding;
 
 use vars qw($VERSION);
-$VERSION = "1.04";
+$VERSION = "1.05";
 
 # If you have the t1disasm program, have $t1disasm point to it.
 # This speeds up the glyph fetching.
@@ -163,7 +163,7 @@ sub _loadfont ($) {
       unless length($data) >= 4;
 
     $self->{dataformat} = 'ps';
-    if ( substr($data,0,4) eq "\0\1\0\0" ) {
+    if ( substr($data,0,4) eq "\0\1\0\0" || substr($data, 0, 4) eq "OTTO" ) {
 	# For the time being, Font::TTF is optional. Be careful.
 	eval {
 	    require PostScript::Font::TTtoType42;
