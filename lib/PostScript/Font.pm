@@ -2,8 +2,8 @@
 # Author          : Johan Vromans
 # Created On      : December 1998
 # Last Modified By: Johan Vromans
-# Last Modified On: Sat Dec 27 21:31:20 2014
-# Update Count    : 467
+# Last Modified On: Sat Dec 27 21:35:02 2014
+# Update Count    : 468
 # Status          : Released
 
 ################ Module Preamble ################
@@ -782,7 +782,7 @@ Johan Vromans, Squirrel Consultancy <jvromans@squirrel.nl>
 
 =head1 COPYRIGHT and DISCLAIMER
 
-This program is Copyright 2000,1998 by Squirrel Consultancy. All
+This program is Copyright 2014,2000,1998 by Squirrel Consultancy. All
 rights reserved.
 
 This program is free software; you can redistribute it and/or modify
